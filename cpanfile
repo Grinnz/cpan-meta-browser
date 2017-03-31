@@ -1,0 +1,10 @@
+requires 'perl' => '5.020';
+requires 'experimental';
+requires 'File::Open';
+requires 'Mojolicious' => '7.29';
+requires 'Mojo::SQLite' => '2.001';
+requires 'HTTP::Tiny' => '0.039';
+requires 'IO::Socket::SSL';
+requires 'IO::Uncompress::Gunzip';
+requires 'Text::CSV_XS';
+requires 'Time::Seconds';
