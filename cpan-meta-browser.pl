@@ -403,12 +403,11 @@ CREATE TABLE IF NOT EXISTS "packages" (
 );
 
 CREATE TABLE IF NOT EXISTS "perms" (
-  "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
   "package" TEXT NOT NULL,
   "userid" TEXT NOT NULL,
-  "best_permission" TEXT NOT NULL CHECK ("best_permission" IN ('m','f','c'))
+  "best_permission" TEXT NOT NULL CHECK ("best_permission" IN ('m','f','c')),
+  PRIMARY KEY ("package","userid")
 );
-CREATE UNIQUE INDEX IF NOT EXISTS "perms_package_userid_unique_idx" ON "perms" ("package","userid");
 CREATE INDEX IF NOT EXISTS "perms_userid_best_permission_idx" ON "perms" ("userid","best_permission");
 CREATE INDEX IF NOT EXISTS "perms_package_best_permission_idx" ON "perms" ("package","best_permission");
 
