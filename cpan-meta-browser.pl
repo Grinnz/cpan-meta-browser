@@ -4,33 +4,117 @@
 # This is free software, licensed under:
 #   The Artistic License 2.0 (GPL Compatible)
 
+package CPANMetaBrowser::Command::refresh {
+use Mojo::Base 'Mojolicious::Command';
+use experimental 'signatures';
+use File::Open 'fopen';
+use IO::Uncompress::Gunzip qw(gunzip $GunzipError);
+use Mojo::URL;
+use Syntax::Keyword::Try;
+use Text::CSV_XS;
+
+use constant CPAN_MIRROR_METACPAN => 'https://cpan.metacpan.org/';
+
+sub run ($self) {
+  try {
+    prepare_02packages($self->app);
+    prepare_06perms($self->app);
+    $self->app->log->debug('Refreshed cpan-meta database');
+    print "Refreshed cpan-meta database\n";
+  } catch {
+    $self->app->log->error("Failed to refresh cpan-meta database: $@");
+    die "Failed to refresh cpan-meta database: $@";
+  }
+}
+
+sub cache_file ($app, $filename, $inflate) {
+  my $url = Mojo::URL->new(CPAN_MIRROR_METACPAN)->path("modules/$filename");
+  my $local_path = $app->cache_dir->child($filename);
+  my $res = $app->httptiny->mirror($url, $local_path);
+  die "Failed to cache file from $url to $local_path: $res->{content}\n" if $res->{status} == 599;
+  die "Failed to cache file from $url to $local_path: $res->{status} $res->{reason}\n" unless $res->{success};
+  $app->log->debug("Cached file from $url to $local_path: $res->{status} $res->{reason}");
+  if ($inflate) {
+    my $unzipped_path = $local_path =~ s/\.gz\z//r;
+    return $local_path if $local_path eq $unzipped_path;
+    my $rc = gunzip("$local_path" => "$unzipped_path") or die "Failed to gunzip $local_path: $GunzipError\n";
+    $app->log->debug("Inflated $local_path to $unzipped_path");
+    return $unzipped_path;
+  } else {
+    return $local_path;
+  }
+}
+
+sub prepare_02packages ($app) {
+  my $packages_path = cache_file($app, '02packages.details.txt.gz', 1);
+  
+  my $fh = fopen $packages_path, 'r';
+  while (defined(my $line = readline $fh)) {
+    last if $line =~ m/^\s*$/;
+  }
+  
+  my $db = $app->sqlite->db;
+  my $tx = $db->begin;
+  $db->delete('packages');
+  
+  while (defined(my $line = readline $fh)) {
+    my ($package, $version, $path) = split /\s+/, $line, 3;
+    next unless length $version;
+    $version = undef if $version eq 'undef';
+    $db->insert('packages', {package => $package, version => $version, path => ($path // '')});
+  }
+  $tx->commit;
+}
+
+sub prepare_06perms ($app) {
+  my $perms_path = cache_file($app, '06perms.txt.gz', 1);
+  
+  my $fh = fopen $perms_path, 'r';
+  while (defined(my $line = readline $fh)) {
+    last if $line =~ m/^\s*$/;
+  }
+  
+  my $db = $app->sqlite->db;
+  my $tx = $db->begin;
+  $db->delete('perms');
+  
+  my $csv = Text::CSV_XS->new({binary => 1});
+  $csv->bind_columns(\my $package, \my $userid, \my $best_permission);
+  while ($csv->getline($fh)) {
+    next unless length $package and length $userid and length $best_permission;
+    unless ($best_permission eq 'm' or $best_permission eq 'f' or $best_permission eq 'c') {
+      $app->log->warn("06perms.txt: Found invalid permission type $best_permission for $userid on module $package");
+      next;
+    }
+    $db->insert('perms', {package => $package, userid => $userid, best_permission => $best_permission});
+  }
+  $tx->commit;
+}
+
+} # end CPANMetaBrowser::Command::refresh
+
 use Mojolicious::Lite;
 use experimental 'signatures';
-use Mojo::IOLoop;
 use Mojo::JSON::MaybeXS;
 use Mojo::SQLite;
 use Mojo::URL;
 use Mojo::Util 'trim';
-use File::Open 'fopen';
 use HTTP::Tiny;
-use IO::Uncompress::Gunzip qw(gunzip $GunzipError);
-use Text::CSV_XS;
-use Time::Seconds;
-
-use constant CPAN_MIRROR_METACPAN => 'https://cpan.metacpan.org/';
 
 my $cache_dir = app->home->child('cache')->make_path;
-my $ua = HTTP::Tiny->new;
 
 my $sqlite_path = app->home->child('cpan-meta.sqlite');
 my $sqlite = Mojo::SQLite->new->from_filename($sqlite_path);
 $sqlite->migrations->from_data(__PACKAGE__, 'cpan-meta')->migrate;
 
-#Mojo::IOLoop->next_tick(sub { prepare_database($sqlite) });
-#Mojo::IOLoop->recurring(ONE_HOUR() => sub { prepare_database($sqlite) });
+push @{app->commands->namespaces}, 'CPANMetaBrowser::Command';
+
+my $httptiny;
+helper 'httptiny' => sub { $httptiny //= HTTP::Tiny->new };
+helper 'cache_dir' => sub { $cache_dir };
+helper 'sqlite' => sub { $sqlite };
 
 plugin 'Config' => {file => 'cpan-meta-browser.conf', default => {}};
-helper 'sqlite' => sub { $sqlite };
 
 get '/' => 'index';
 
@@ -77,84 +161,6 @@ get '/api/v1/perms/by-author/:author' => sub ($c) {
 };
 
 app->start;
-
-sub cache_file ($filename) {
-  my $url = Mojo::URL->new(CPAN_MIRROR_METACPAN)->path("modules/$filename");
-  my $local_path = $cache_dir->child($filename);
-  my $res = $ua->mirror($url, $local_path);
-  die "Failed to cache file from $url to $local_path: $res->{content}\n" if $res->{status} == 599;
-  die "Failed to cache file from $url to $local_path: $res->{status} $res->{reason}\n" unless $res->{success};
-  app->log->debug("Cached file from $url to $local_path: $res->{status} $res->{reason}");
-  return $local_path;
-}
-
-sub inflate_file ($path) {
-  my $unzipped_path = $path =~ s/\.gz\z//r;
-  return $path if $path eq $unzipped_path;
-  my $rc = gunzip("$path" => "$unzipped_path") or die "Failed to gunzip $path: $GunzipError\n";
-  app->log->debug("Inflated $path to $unzipped_path");
-  return $unzipped_path;
-}
-
-sub prepare_database ($sqlite) {
-  Mojo::IOLoop->subprocess(sub {
-    prepare_02packages($sqlite);
-    prepare_06perms($sqlite);
-  }, sub {
-    my ($subprocess, $err, @results) = @_;
-    if ($err) {
-      app->log->error("Failed to prepare cpan-meta database: $err");
-    } else {
-      app->log->debug("Prepared cpan-meta database");
-    }
-  });
-}
-
-sub prepare_02packages ($sqlite) {
-  my $packages_path = inflate_file(cache_file('02packages.details.txt.gz'));
-  
-  my $fh = fopen $packages_path, 'r';
-  while (defined(my $line = readline $fh)) {
-    last if $line =~ m/^\s*$/;
-  }
-  
-  my $db = $sqlite->db;
-  my $tx = $db->begin;
-  $db->delete('packages');
-  
-  while (defined(my $line = readline $fh)) {
-    my ($package, $version, $path) = split /\s+/, $line, 3;
-    next unless length $version;
-    $version = undef if $version eq 'undef';
-    $db->insert('packages', {package => $package, version => $version, path => ($path // '')});
-  }
-  $tx->commit;
-}
-
-sub prepare_06perms ($sqlite) {
-  my $perms_path = inflate_file(cache_file('06perms.txt.gz'));
-  
-  my $fh = fopen $perms_path, 'r';
-  while (defined(my $line = readline $fh)) {
-    last if $line =~ m/^\s*$/;
-  }
-  
-  my $db = $sqlite->db;
-  my $tx = $db->begin;
-  $db->delete('perms');
-  
-  my $csv = Text::CSV_XS->new({binary => 1});
-  $csv->bind_columns(\my $package, \my $userid, \my $best_permission);
-  while ($csv->getline($fh)) {
-    next unless length $package and length $userid and length $best_permission;
-    unless ($best_permission eq 'm' or $best_permission eq 'f' or $best_permission eq 'c') {
-      warn "06perms.txt: Found invalid permission type $best_permission for $userid on module $package\n";
-      next;
-    }
-    $db->insert('perms', {package => $package, userid => $userid, best_permission => $best_permission});
-  }
-  $tx->commit;
-}
 
 __DATA__
 @@ index.html.ep

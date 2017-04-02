@@ -8,4 +8,3 @@ requires 'HTTP::Tiny' => '0.039';
 requires 'IO::Socket::SSL';
 requires 'IO::Uncompress::Gunzip';
 requires 'Text::CSV_XS';
-requires 'Time::Seconds';
