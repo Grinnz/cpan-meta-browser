@@ -24,11 +24,12 @@ my $ua = HTTP::Tiny->new;
 
 my $sqlite_path = app->home->child('cpan-meta.sqlite');
 my $sqlite = Mojo::SQLite->new->from_filename($sqlite_path);
-$sqlite->migrations->from_data('main', 'cpan-meta')->migrate;
+$sqlite->migrations->from_data(__PACKAGE__, 'cpan-meta')->migrate;
 
 #Mojo::IOLoop->next_tick(sub { prepare_database($sqlite) });
 #Mojo::IOLoop->recurring(ONE_HOUR() => sub { prepare_database($sqlite) });
 
+plugin 'Config' => {file => 'cpan-meta-browser.conf'};
 helper 'sqlite' => sub { $sqlite };
 
 get '/' => 'index';

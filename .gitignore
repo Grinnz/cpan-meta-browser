@@ -1,3 +1,5 @@
 cache/
 log/*
 cpan-meta.sqlite*
+cpan-meta-browser.conf
+hypnotoad.pid
