@@ -58,6 +58,7 @@ sub prepare_02packages ($app) {
   $db->delete('packages');
   
   while (defined(my $line = readline $fh)) {
+    chomp $line;
     my ($package, $version, $path) = split /\s+/, $line, 3;
     next unless length $version;
     $version = undef if $version eq 'undef';
@@ -259,7 +260,23 @@ __DATA__
               var new_row = $('<tr></tr>');
               ['module','version','owner','path'].forEach(function(key) {
                 var cell = $('<td></td>');
-                cell.text(row_result[key]);
+                var value = row_result[key];
+                switch (key) {
+                  case 'module':
+                    url = 'https://metacpan.org/pod/' + encodeURI(value);
+                    cell.append($('<a></a>').attr('href', url).text(value));
+                    break;
+                  case 'owner':
+                    url = 'https://metacpan.org/author/' + encodeURIComponent(value);
+                    cell.append($('<a></a>').attr('href', url).text(value));
+                    break;
+                  case 'path':
+                    url = 'https://cpan.metacpan.org/authors/id/' + encodeURI(value);
+                    cell.append($('<a></a>').attr('href', url).text(value));
+                    break;
+                  default:
+                    cell.text(value);
+                }
                 new_row.append(cell);
               });
               $('#package-search-results-table').append(new_row);
@@ -283,22 +300,34 @@ __DATA__
               var new_row = $('<tr></tr>');
               ['module','author','best_permission','owner'].forEach(function(key) {
                 var cell = $('<td></td>');
-                var perm = '';
-                if (key === 'best_permission') {
-                  switch (row_result[key].toLowerCase()) {
-                    case 'm':
-                      perm = 'modulelist';
-                      break;
-                    case 'f':
-                      perm = 'first-come';
-                      break;
-                    case 'c':
-                      perm = 'co-maint';
-                      break;
-                  }
-                  cell.text(perm);
-                } else {
-                  cell.text(row_result[key]);
+                var value = row_result[key];
+                switch (key) {
+                  case 'module':
+                    url = 'https://metacpan.org/pod/' + encodeURI(value);
+                    cell.append($('<a></a>').attr('href', url).text(value));
+                    break;
+                  case 'author':
+                  case 'owner':
+                    url = 'https://metacpan.org/author/' + encodeURIComponent(value);
+                    cell.append($('<a></a>').attr('href', url).text(value));
+                    break;
+                  case 'best_permission':
+                    var perm = '';
+                    switch (row_result[key].toLowerCase()) {
+                      case 'm':
+                        perm = 'modulelist';
+                        break;
+                      case 'f':
+                        perm = 'first-come';
+                        break;
+                      case 'c':
+                        perm = 'co-maint';
+                        break;
+                    }
+                    cell.text(perm);
+                    break;
+                  default:
+                    cell.text(value);
                 }
                 new_row.append(cell);
               });
@@ -322,22 +351,34 @@ __DATA__
               var new_row = $('<tr></tr>');
               ['module','author','best_permission','owner'].forEach(function(key) {
                 var cell = $('<td></td>');
-                var perm = '';
-                if (key === 'best_permission') {
-                  switch (row_result[key].toLowerCase()) {
-                    case 'm':
-                      perm = 'modulelist';
-                      break;
-                    case 'f':
-                      perm = 'first-come';
-                      break;
-                    case 'c':
-                      perm = 'co-maint';
-                      break;
-                  }
-                  cell.text(perm);
-                } else {
-                  cell.text(row_result[key]);
+                var value = row_result[key];
+                switch (key) {
+                  case 'module':
+                    url = 'https://metacpan.org/pod/' + encodeURI(value);
+                    cell.append($('<a></a>').attr('href', url).text(value));
+                    break;
+                  case 'author':
+                  case 'owner':
+                    url = 'https://metacpan.org/author/' + encodeURIComponent(value);
+                    cell.append($('<a></a>').attr('href', url).text(value));
+                    break;
+                  case 'best_permission':
+                    var perm = '';
+                    switch (row_result[key].toLowerCase()) {
+                      case 'm':
+                        perm = 'modulelist';
+                        break;
+                      case 'f':
+                        perm = 'first-come';
+                        break;
+                      case 'c':
+                        perm = 'co-maint';
+                        break;
+                    }
+                    cell.text(perm);
+                    break;
+                  default:
+                    cell.text(value);
                 }
                 new_row.append(cell);
               });
