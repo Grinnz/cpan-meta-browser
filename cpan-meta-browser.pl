@@ -133,6 +133,7 @@ get '/api/v1/packages/:module' => sub ($c) {
   my $details = $c->sqlite->db->query('SELECT "p"."package" AS "module", "p"."version", "p"."path",
     (SELECT "userid" FROM "perms" WHERE "package"="p"."package" AND "best_permission"=? ORDER BY "userid" COLLATE NOCASE LIMIT 1) AS "owner"
     FROM "packages" AS "p" WHERE ' . $where . ' ORDER BY "p"."package" COLLATE NOCASE', 'f', @params)->hashes;
+  ($_->{uploader}) = $_->{path} =~ m{^[^/]+/[^/]+/([a-z]+)}i for @$details;
   $c->render(json => $details);
 };
 
@@ -199,7 +200,7 @@ __DATA__
         <br>
         <div id="package-search-results">
           <table class="table table-striped table-condensed" id="package-search-results-table">
-            <tr id="package-search-results-header"><th>Module</th><th>Version</th><th>Owner</th><th>Path</th></tr>
+            <tr id="package-search-results-header"><th>Module</th><th>Version</th><th>Owner</th><th>Uploader</th><th>Path</th></tr>
           </table>
         </div>
       </div>
@@ -258,7 +259,7 @@ __DATA__
             $('#package-search-results-header').nextAll('tr').remove();
             data.forEach(function(row_result) {
               var new_row = $('<tr></tr>');
-              ['module','version','owner','path'].forEach(function(key) {
+              ['module','version','owner','uploader','path'].forEach(function(key) {
                 var cell = $('<td></td>');
                 var value = row_result[key];
                 switch (key) {
@@ -267,6 +268,7 @@ __DATA__
                     cell.append($('<a></a>').attr('href', url).text(value));
                     break;
                   case 'owner':
+                  case 'uploader':
                     url = 'https://metacpan.org/author/' + encodeURIComponent(value);
                     cell.append($('<a></a>').attr('href', url).text(value));
                     break;
