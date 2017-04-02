@@ -7,4 +7,5 @@ requires 'Mojo::SQLite' => '2.001';
 requires 'HTTP::Tiny' => '0.039';
 requires 'IO::Socket::SSL';
 requires 'IO::Uncompress::Gunzip';
+requires 'Syntax::Keyword::Try' => '0.04';
 requires 'Text::CSV_XS';
