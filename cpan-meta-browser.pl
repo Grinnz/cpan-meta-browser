@@ -29,7 +29,7 @@ $sqlite->migrations->from_data(__PACKAGE__, 'cpan-meta')->migrate;
 #Mojo::IOLoop->next_tick(sub { prepare_database($sqlite) });
 #Mojo::IOLoop->recurring(ONE_HOUR() => sub { prepare_database($sqlite) });
 
-plugin 'Config' => {file => 'cpan-meta-browser.conf'};
+plugin 'Config' => {file => 'cpan-meta-browser.conf', default => {}};
 helper 'sqlite' => sub { $sqlite };
 
 get '/' => 'index';
