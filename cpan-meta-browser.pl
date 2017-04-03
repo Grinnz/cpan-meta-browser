@@ -116,6 +116,8 @@ helper 'cache_dir' => sub { $cache_dir };
 helper 'sqlite' => sub { $sqlite };
 
 plugin 'Config' => {file => 'cpan-meta-browser.conf', default => {}};
+my $access_log = app->config->{access_log} // 'log/access.log';
+plugin 'AccessLog' => {log => $access_log} if $access_log;
 
 get '/' => 'index';
 

@@ -2,6 +2,7 @@ requires 'perl' => '5.020';
 requires 'experimental';
 requires 'File::Open';
 requires 'Mojolicious' => '7.29';
+requires 'Mojolicious::Plugin::AccessLog';
 requires 'Mojo::JSON::MaybeXS';
 requires 'Mojo::SQLite' => '2.001';
 requires 'HTTP::Tiny' => '0.039';
