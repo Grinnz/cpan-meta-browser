@@ -1,3 +1,8 @@
+/* This software is Copyright (c) 2017 by Dan Book <dbook@cpan.org>.
+   This is free software, licensed under:
+     The Artistic License 2.0 (GPL Compatible)
+*/
+
 $(function() {
   $('.nav-tabs').stickyTabs();
   $('#package-search-form').submit(function(event) {
