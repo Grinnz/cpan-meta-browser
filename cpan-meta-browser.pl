@@ -485,6 +485,13 @@ __DATA__
                     var url = 'https://metacpan.org/author/' + encodeURIComponent(value);
                     cell.append($('<a></a>').attr('href', url).text(value));
                     break;
+                  case 'fullname':
+                    cell.text(value);
+                    var asciiname = row_result.asciiname;
+                    if (asciiname != null) {
+                      cell.attr('title', asciiname);
+                    }
+                    break;
                   case 'email':
                     if (value != null && value === 'CENSORED') {
                       cell.text(value);
