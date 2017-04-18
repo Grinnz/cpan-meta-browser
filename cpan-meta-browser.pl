@@ -237,6 +237,7 @@ __DATA__
       <li role="presentation" class="active"><a href="#packages" aria-controls="packages" role="tab" data-toggle="tab">Module Index Search</a></li>
       <li role="presentation"><a href="#module-perms" aria-controls="module-perms" role="tab" data-toggle="tab">Module Permissions Search</a></li>
       <li role="presentation"><a href="#author-perms" aria-controls="author-perms" role="tab" data-toggle="tab">Author Permissions Search</a></li>
+      <li role="presentation"><a href="#authors" aria-controls="authors" role="tab" data-toggle="tab">Author Search</a></li>
     </ul>
     <div class="tab-content">
       <div role="tabpanel" class="tab-pane active" id="packages">
@@ -293,6 +294,25 @@ __DATA__
           </table>
         </div>
       </div>
+      <div role="tabpanel" class="tab-pane" id="authors">
+        <br>
+        <form class="form-inline" action="#" id="author-search-form">
+          <div class="form-group">
+            <label class="sr-only" for="author-search-text-input">Author PAUSE ID</label>
+            <input type="text" class="form-control" id="author-search-text-input" placeholder="Author PAUSE ID">
+          </div>
+          <div class="checkbox">
+            <label><input type="checkbox" id="author-search-exact-match"> Exact Match</label>
+          </div>
+          <button type="submit" class="btn btn-primary">Search</button>
+        </form>
+        <br>
+        <div id="author-search-results">
+          <table class="table table-striped table-condensed" id="author-search-results-table">
+            <tr id="author-search-results-header"><th>Author</th><th>Name</th><th>Email</th><th>Homepage</th><th>Introduced</th><th>CPAN Directory</th></tr>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -318,16 +338,16 @@ __DATA__
                 var value = row_result[key];
                 switch (key) {
                   case 'module':
-                    url = 'https://metacpan.org/pod/' + encodeURI(value);
+                    var url = 'https://metacpan.org/pod/' + encodeURI(value);
                     cell.append($('<a></a>').attr('href', url).text(value));
                     break;
                   case 'owner':
                   case 'uploader':
-                    url = 'https://metacpan.org/author/' + encodeURIComponent(value);
+                    var url = 'https://metacpan.org/author/' + encodeURIComponent(value);
                     cell.append($('<a></a>').attr('href', url).text(value));
                     break;
                   case 'path':
-                    url = 'https://cpan.metacpan.org/authors/id/' + encodeURI(value);
+                    var url = 'https://cpan.metacpan.org/authors/id/' + encodeURI(value);
                     cell.append($('<a></a>').attr('href', url).text(value));
                     break;
                   default:
@@ -359,12 +379,12 @@ __DATA__
                 var value = row_result[key];
                 switch (key) {
                   case 'module':
-                    url = 'https://metacpan.org/pod/' + encodeURI(value);
+                    var url = 'https://metacpan.org/pod/' + encodeURI(value);
                     cell.append($('<a></a>').attr('href', url).text(value));
                     break;
                   case 'author':
                   case 'owner':
-                    url = 'https://metacpan.org/author/' + encodeURIComponent(value);
+                    var url = 'https://metacpan.org/author/' + encodeURIComponent(value);
                     cell.append($('<a></a>').attr('href', url).text(value));
                     break;
                   case 'best_permission':
@@ -410,12 +430,12 @@ __DATA__
                 var value = row_result[key];
                 switch (key) {
                   case 'module':
-                    url = 'https://metacpan.org/pod/' + encodeURI(value);
+                    var url = 'https://metacpan.org/pod/' + encodeURI(value);
                     cell.append($('<a></a>').attr('href', url).text(value));
                     break;
                   case 'author':
                   case 'owner':
-                    url = 'https://metacpan.org/author/' + encodeURIComponent(value);
+                    var url = 'https://metacpan.org/author/' + encodeURIComponent(value);
                     cell.append($('<a></a>').attr('href', url).text(value));
                     break;
                   case 'best_permission':
@@ -439,6 +459,65 @@ __DATA__
                 new_row.append(cell);
               });
               $('#author-perms-search-results-table').append(new_row);
+            });
+          })
+          .fail(function() {
+          });
+      });
+      $('#author-search-form').submit(function(event) {
+        event.preventDefault();
+        var author_id = $('#author-search-text-input').val();
+        var exact_match = $('#author-search-exact-match').is(':checked');
+        if (author_id.length === 0 || (!exact_match && author_id.length === 1)) {
+          return null;
+        }
+        $('#author-search-results-header').nextAll('tr').remove();
+        var res = $.getJSON('/api/v1/authors/' + encodeURIComponent(author_id), { as_prefix: exact_match ? 0 : 1 })
+          .done(function(data) {
+            $('#author-search-results-header').nextAll('tr').remove();
+            data.forEach(function(row_result) {
+              var new_row = $('<tr></tr>');
+              ['author','fullname','email','homepage','introduced','has_cpandir'].forEach(function(key) {
+                var cell = $('<td></td>');
+                var value = row_result[key];
+                switch (key) {
+                  case 'author':
+                    var url = 'https://metacpan.org/author/' + encodeURIComponent(value);
+                    cell.append($('<a></a>').attr('href', url).text(value));
+                    break;
+                  case 'email':
+                    if (value != null && value === 'CENSORED') {
+                      cell.text(value);
+                    } else {
+                      var url = 'mailto:' + value;
+                      cell.append($('<a></a>').attr('href', url).text(value));
+                    }
+                    break;
+                  case 'homepage':
+                    cell.append($('<a></a>').attr('href', value).text(value));
+                    break;
+                  case 'introduced':
+                    if (value != null) {
+                      var introduced_date = new Date(value * 1000);
+                      cell.text(introduced_date.toUTCString());
+                    }
+                    break;
+                  case 'has_cpandir':
+                    if (value) {
+                      var cpanid = row_result.author;
+                      var first_dir = cpanid.substring(0, 1);
+                      var second_dir = cpanid.substring(0, 2);
+                      var cpandir = '/authors/id/' + first_dir + '/' + second_dir + '/' + cpanid;
+                      var url = 'https://cpan.metacpan.org' + encodeURI(cpandir);
+                      cell.append($('<a></a>').attr('href', url).text(cpandir));
+                    }
+                    break;
+                  default:
+                    cell.text(value);
+                }
+                new_row.append(cell);
+              });
+              $('#author-search-results-table').append(new_row);
             });
           })
           .fail(function() {
