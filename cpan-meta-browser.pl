@@ -4,6 +4,8 @@
 # This is free software, licensed under:
 #   The Artistic License 2.0 (GPL Compatible)
 
+use 5.020;
+
 package CPANMetaBrowser::Command::refresh {
 use Mojo::Base 'Mojolicious::Command';
 use experimental 'signatures';
