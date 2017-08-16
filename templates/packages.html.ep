@@ -1,11 +1,11 @@
-% layout 'main', title => 'Module Index Search';
-<form class="form-inline" v-on:submit.prevent="search_packages">
+% layout 'main', title => 'Module Index Search', search_type => 'packages';
+<form class="form-inline" id="search-form" v-on:submit.prevent="do_search">
   <div class="form-group">
-    <label class="sr-only" for="package-search-query">Module Name</label>
-    <input type="text" class="form-control" id="package-search-query" v-model="package_search_query" placeholder="Module Name">
+    <label class="sr-only" for="search-query">Module Name</label>
+    <input type="text" class="form-control" id="search-query" v-model="search_query" placeholder="Module Name">
   </div>
   <div class="checkbox">
-    <label><input type="checkbox" v-model="package_search_exact_match"> Exact Match</label>
+    <label><input type="checkbox" v-model="search_exact_match"> Exact Match</label>
   </div>
   <button type="submit" class="btn btn-primary">Search</button>
 </form>

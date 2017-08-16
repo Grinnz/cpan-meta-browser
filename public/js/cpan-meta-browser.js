@@ -4,28 +4,39 @@
 */
 
 var search_data = {
+  search_type: null,
+  search_query: null,
+  search_exact_match: false,
   package_search_results: [],
-  package_search_query: null,
-  package_search_exact_match: false,
   module_perms_search_results: [],
-  module_perms_search_query: null,
-  module_perms_search_exact_match: false,
   author_perms_search_results: [],
-  author_perms_search_query: null,
-  author_search_results: [],
-  author_search_query: null,
-  author_search_exact_match: false
+  author_search_results: []
 };
 var search_vm = new Vue({
   el: '#search-tab',
   data: search_data,
   methods: {
+    do_search: function() {
+      switch (search_data.search_type) {
+        case 'packages':
+          return search_vm.search_packages();
+        case 'module_perms':
+          return search_vm.search_module_perms();
+        case 'author_perms':
+          return search_vm.search_author_perms();
+        case 'authors':
+          return search_vm.search_authors();
+        default:
+          console.log('Unknown search type ' + search_data.search_type);
+      }
+    },
     search_packages: function() {
-      var query = search_data.package_search_query;
-      var exact_match = search_data.package_search_exact_match;
+      var query = search_data.search_query;
+      var exact_match = search_data.search_exact_match;
       if (query.length === 0 || (!exact_match && query.length === 1)) {
         return null;
       }
+      search_vm.hash_from_search();
       var res = $.getJSON('/api/v1/packages/' + encodeURIComponent(query), { as_prefix: exact_match ? 0 : 1 })
         .done(function(data) {
           search_data.package_search_results = data;
@@ -34,11 +45,12 @@ var search_vm = new Vue({
         });
     },
     search_module_perms: function() {
-      var query = search_data.module_perms_search_query;
-      var exact_match = search_data.module_perms_search_exact_match;
+      var query = search_data.search_query;
+      var exact_match = search_data.search_exact_match;
       if (query.length === 0 || (!exact_match && query.length === 1)) {
         return null;
       }
+      search_vm.hash_from_search();
       var res = $.getJSON('/api/v1/perms/by-module/' + encodeURIComponent(query), { as_prefix: exact_match ? 0 : 1 })
         .done(function(data) {
           search_data.module_perms_search_results = data;
@@ -47,10 +59,11 @@ var search_vm = new Vue({
         });
     },
     search_author_perms: function() {
-      var query = search_data.author_perms_search_query;
+      var query = search_data.search_query;
       if (query.length === 0) {
         return null;
       }
+      search_vm.hash_from_search();
       var res = $.getJSON('/api/v1/perms/by-author/' + encodeURIComponent(query))
         .done(function(data) {
           search_data.author_perms_search_results = data;
@@ -59,11 +72,12 @@ var search_vm = new Vue({
         })
     },
     search_authors: function() {
-      var query = search_data.author_search_query;
-      var exact_match = search_data.author_search_exact_match;
+      var query = search_data.search_query;
+      var exact_match = search_data.search_exact_match;
       if (query.length === 0 || (!exact_match && query.length === 1)) {
         return null;
       }
+      search_vm.hash_from_search();
       var res = $.getJSON('/api/v1/authors/' + encodeURIComponent(query), { as_prefix: exact_match ? 0 : 1 })
         .done(function(data) {
           search_data.author_search_results = data;
@@ -101,6 +115,28 @@ var search_vm = new Vue({
     },
     author_cpandir: function(author) {
       return author.substring(0, 1) + '/' + author.substring(0, 2) + '/' + author;
+    },
+    hash_from_search: function() {
+      var new_hash = (search_data.search_exact_match ? '=' : '~') + search_data.search_query;
+      if ('#' + new_hash !== window.location.hash) {
+        window.location.hash = new_hash;
+      }
+    },
+    search_from_hash: function() {
+      var hash = window.location.hash;
+      if (hash != null && hash.length > 2 && hash.substring(0, 1) === '#') {
+        switch (hash.substring(1, 2)) {
+          case '=':
+            search_data.search_exact_match = true;
+            break;
+          case '~':
+            search_data.search_exact_match = false;
+            break;
+        }
+        search_data.search_query = hash.substring(2);
+      }
     }
   }
 });
+
+$(function() { search_vm.search_from_hash(); search_vm.do_search() });

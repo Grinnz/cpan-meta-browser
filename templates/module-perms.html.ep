@@ -1,11 +1,11 @@
-% layout 'main', title => 'Module Permissions Search';
-<form class="form-inline" v-on:submit.prevent="search_module_perms">
+% layout 'main', title => 'Module Permissions Search', search_type => 'module_perms';
+<form class="form-inline" id="search-form" v-on:submit.prevent="do_search">
   <div class="form-group">
-    <label class="sr-only" for="module-perms-search-query">Module Name</label>
-    <input type="text" class="form-control" id="module-perms-search-query" v-model="module_perms_search_query" placeholder="Module Name">
+    <label class="sr-only" for="search-query">Module Name</label>
+    <input type="text" class="form-control" id="search-query" v-model="search_query" placeholder="Module Name">
   </div>
   <div class="checkbox">
-    <label><input type="checkbox" v-model="module_perms_search_exact_match"> Exact Match</label>
+    <label><input type="checkbox" v-model="search_exact_match"> Exact Match</label>
   </div>
   <button type="submit" class="btn btn-primary">Search</button>
 </form>

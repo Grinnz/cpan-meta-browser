@@ -1,11 +1,11 @@
-% layout 'main', title => 'Author Search';
-<form class="form-inline" v-on:submit.prevent="search_authors">
+% layout 'main', title => 'Author Search', search_type => 'authors';
+<form class="form-inline" id="search-form" v-on:submit.prevent="do_search">
   <div class="form-group">
-    <label class="sr-only" for="author-search-query">Author PAUSE ID</label>
-    <input type="text" class="form-control" id="author-search-query" v-model="author_search_query" placeholder="Author PAUSE ID">
+    <label class="sr-only" for="search-query">Author PAUSE ID</label>
+    <input type="text" class="form-control" id="search-query" v-model="search_query" placeholder="Author PAUSE ID">
   </div>
   <div class="checkbox">
-    <label><input type="checkbox" v-model="author_search_exact_match"> Exact Match</label>
+    <label><input type="checkbox" v-model="search_exact_match"> Exact Match</label>
   </div>
   <button type="submit" class="btn btn-primary">Search</button>
 </form>
