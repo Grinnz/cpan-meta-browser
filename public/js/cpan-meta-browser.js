@@ -132,6 +132,8 @@ var search_vm = new Vue({
           case '~':
             search_data.search_exact_match = false;
             break;
+          default:
+            return null;
         }
         search_data.search_query = hash.substring(2);
       }
