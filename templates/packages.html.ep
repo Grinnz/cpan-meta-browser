@@ -1,0 +1,17 @@
+% layout 'main', title => 'Module Index Search';
+<form class="form-inline" action="#" id="package-search-form">
+  <div class="form-group">
+    <label class="sr-only" for="package-search-text-input">Module Name</label>
+    <input type="text" class="form-control" id="package-search-text-input" placeholder="Module Name">
+  </div>
+  <div class="checkbox">
+    <label><input type="checkbox" id="package-search-exact-match"> Exact Match</label>
+  </div>
+  <button type="submit" class="btn btn-primary">Search</button>
+</form>
+<br>
+<div id="package-search-results">
+  <table class="table table-striped table-condensed" id="package-search-results-table">
+    <tr id="package-search-results-header"><th>Module</th><th>Version</th><th>Owner</th><th>Uploader</th><th>Path</th></tr>
+  </table>
+</div>

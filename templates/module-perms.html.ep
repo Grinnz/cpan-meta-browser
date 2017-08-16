@@ -1,0 +1,17 @@
+% layout 'main', title => 'Module Permissions Search';
+<form class="form-inline" action="#" id="module-perms-search-form">
+  <div class="form-group">
+    <label class="sr-only" for="module-perms-search-text-input">Module Name</label>
+    <input type="text" class="form-control" id="module-perms-search-text-input" placeholder="Module Name">
+  </div>
+  <div class="checkbox">
+    <label><input type="checkbox" id="module-perms-search-exact-match"> Exact Match</label>
+  </div>
+  <button type="submit" class="btn btn-primary">Search</button>
+</form>
+<br>
+<div id="module-perms-search-results">
+  <table class="table table-striped table-condensed" id="module-perms-search-results-table">
+    <tr id="module-perms-search-results-header"><th>Module</th><th>Author</th><th>Permission</th><th>Owner</th></tr>
+  </table>
+</div>

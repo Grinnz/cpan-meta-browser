@@ -4,7 +4,6 @@
 */
 
 $(function() {
-  $('.nav-tabs').stickyTabs();
   $('#package-search-form').submit(function(event) {
     event.preventDefault();
     var package_name = $('#package-search-text-input').val();

@@ -156,7 +156,11 @@ app->log->level('error'); # hack around AccessLog's dumb warning
 plugin 'AccessLog' => {log => $access_log} if $access_log;
 app->log->level($old_level);
 
-get '/' => 'index';
+get '/' => sub ($c) { $c->render('packages') } => 'index';
+get '/packages';
+get '/module-perms' => 'module-perms';
+get '/author-perms' => 'author-perms';
+get '/authors';
 
 get '/api/v1/packages/:module' => sub ($c) {
   my $module = trim($c->param('module') // '');
