@@ -7,14 +7,12 @@
   <button type="submit" class="btn btn-primary">Search</button>
 </form>
 <br>
-<div id="author-perms-search-results">
-  <table class="table table-striped table-condensed" id="author-perms-search-results-table">
-    <tr id="author-perms-search-results-header"><th>Module</th><th>Author</th><th>Permission</th><th>Owner</th></tr>
-    <tr v-for="perm in author_perms">
-      <td><a v-bind:href="module_url(perm.module)">{{ perm.module }}</a></td>
-      <td><a v-bind:href="author_url(perm.author)">{{ perm.author }}</a></td>
-      <td>{{ permission_string(perm.best_permission) }}</td>
-      <td><a v-bind:href="author_url(perm.owner)">{{ perm.owner }}</a></td>
-    </tr>
-  </table>
-</div>
+<table class="table table-striped table-condensed">
+  <tr><th>Module</th><th>Author</th><th>Permission</th><th>Owner</th></tr>
+  <tr v-for="perm in author_perms">
+    <td><a v-bind:href="module_url(perm.module)">{{ perm.module }}</a></td>
+    <td><a v-bind:href="author_url(perm.author)">{{ perm.author }}</a></td>
+    <td>{{ permission_string(perm.best_permission) }}</td>
+    <td><a v-bind:href="author_url(perm.owner)">{{ perm.owner }}</a></td>
+  </tr>
+</table>
