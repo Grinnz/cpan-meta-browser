@@ -11,5 +11,3 @@ This software is Copyright (c) 2017 by Dan Book <dbook@cpan.org>.
 This is free software, licensed under:
 
   The Artistic License 2.0 (GPL Compatible)
-
-jquery.stickytabs.js by Aidan Lister <aidan@php.net>, licensed under MIT.
