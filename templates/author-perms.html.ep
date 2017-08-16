@@ -1,15 +1,15 @@
 % layout 'main', title => 'Author Permissions Search';
-<form class="form-inline" id="author-perms-search-form" v-on:submit.prevent="search_author_perms">
+<form class="form-inline" v-on:submit.prevent="search_author_perms">
   <div class="form-group">
-    <label class="sr-only" for="author-perms-search-text-input">Author PAUSE ID</label>
-    <input type="text" class="form-control" id="author-perms-search-text-input" placeholder="Author PAUSE ID">
+    <label class="sr-only" for="author-perms-search-query">Author PAUSE ID</label>
+    <input type="text" class="form-control" id="author-perms-search-query" v-model="author_perms_search_query" placeholder="Author PAUSE ID">
   </div>
   <button type="submit" class="btn btn-primary">Search</button>
 </form>
 <br>
 <table class="table table-striped table-condensed">
   <tr><th>Module</th><th>Author</th><th>Permission</th><th>Owner</th></tr>
-  <tr v-for="perm in author_perms">
+  <tr v-for="perm in author_perms_search_results">
     <td><a v-bind:href="module_url(perm.module)">{{ perm.module }}</a></td>
     <td><a v-bind:href="author_url(perm.author)">{{ perm.author }}</a></td>
     <td>{{ permission_string(perm.best_permission) }}</td>

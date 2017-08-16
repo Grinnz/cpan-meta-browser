@@ -1,18 +1,18 @@
 % layout 'main', title => 'Module Index Search';
-<form class="form-inline" id="package-search-form" v-on:submit.prevent="search_packages">
+<form class="form-inline" v-on:submit.prevent="search_packages">
   <div class="form-group">
-    <label class="sr-only" for="package-search-text-input">Module Name</label>
-    <input type="text" class="form-control" id="package-search-text-input" placeholder="Module Name">
+    <label class="sr-only" for="package-search-query">Module Name</label>
+    <input type="text" class="form-control" id="package-search-query" v-model="package_search_query" placeholder="Module Name">
   </div>
   <div class="checkbox">
-    <label><input type="checkbox" id="package-search-exact-match"> Exact Match</label>
+    <label><input type="checkbox" v-model="package_search_exact_match"> Exact Match</label>
   </div>
   <button type="submit" class="btn btn-primary">Search</button>
 </form>
 <br>
 <table class="table table-striped table-condensed">
   <tr><th>Module</th><th>Version</th><th>Owner</th><th>Uploader</th><th>Path</th></tr>
-  <tr v-for="package in packages">
+  <tr v-for="package in package_search_results">
     <td><a v-bind:href="module_url(package.module)">{{ package.module }}</a></td>
     <td>{{ package.version }}</td>
     <td>{{ package.owner }}</td>

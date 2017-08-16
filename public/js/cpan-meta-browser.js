@@ -3,58 +3,70 @@
      The Artistic License 2.0 (GPL Compatible)
 */
 
-var search_data = { packages: [], module_perms: [], author_perms: [], authors: [] };
+var search_data = {
+  package_search_results: [],
+  package_search_query: null,
+  package_search_exact_match: false,
+  module_perms_search_results: [],
+  module_perms_search_query: null,
+  module_perms_search_exact_match: false,
+  author_perms_search_results: [],
+  author_perms_search_query: null,
+  author_search_results: [],
+  author_search_query: null,
+  author_search_exact_match: false
+};
 var search_vm = new Vue({
   el: '#search-tab',
   data: search_data,
   methods: {
     search_packages: function() {
-      var package_name = $('#package-search-text-input').val();
-      var exact_match = $('#package-search-exact-match').is(':checked');
-      if (package_name.length === 0 || (!exact_match && package_name.length === 1)) {
+      var query = search_data.package_search_query;
+      var exact_match = search_data.package_search_exact_match;
+      if (query.length === 0 || (!exact_match && query.length === 1)) {
         return null;
       }
-      var res = $.getJSON('/api/v1/packages/' + encodeURIComponent(package_name), { as_prefix: exact_match ? 0 : 1 })
+      var res = $.getJSON('/api/v1/packages/' + encodeURIComponent(query), { as_prefix: exact_match ? 0 : 1 })
         .done(function(data) {
-          search_data.packages = data;
+          search_data.package_search_results = data;
         })
         .fail(function() {
         });
     },
     search_module_perms: function() {
-      var package_name = $('#module-perms-search-text-input').val();
-      var exact_match = $('#module-perms-search-exact-match').is(':checked');
-      if (package_name.length === 0 || (!exact_match && package_name.length === 1)) {
+      var query = search_data.module_perms_search_query;
+      var exact_match = search_data.module_perms_search_exact_match;
+      if (query.length === 0 || (!exact_match && query.length === 1)) {
         return null;
       }
-      var res = $.getJSON('/api/v1/perms/by-module/' + encodeURIComponent(package_name), { as_prefix: exact_match ? 0 : 1 })
+      var res = $.getJSON('/api/v1/perms/by-module/' + encodeURIComponent(query), { as_prefix: exact_match ? 0 : 1 })
         .done(function(data) {
-          search_data.module_perms = data;
+          search_data.module_perms_search_results = data;
         })
         .fail(function() {
         });
     },
     search_author_perms: function() {
-      var author_id = $('#author-perms-search-text-input').val();
-      if (author_id.length === 0) {
+      var query = search_data.author_perms_search_query;
+      if (query.length === 0) {
         return null;
       }
-      var res = $.getJSON('/api/v1/perms/by-author/' + encodeURIComponent(author_id))
+      var res = $.getJSON('/api/v1/perms/by-author/' + encodeURIComponent(query))
         .done(function(data) {
-          search_data.author_perms = data;
+          search_data.author_perms_search_results = data;
         })
         .fail(function() {
         })
     },
     search_authors: function() {
-      var author_id = $('#author-search-text-input').val();
-      var exact_match = $('#author-search-exact-match').is(':checked');
-      if (author_id.length === 0 || (!exact_match && author_id.length === 1)) {
+      var query = search_data.author_search_query;
+      var exact_match = search_data.author_search_exact_match;
+      if (query.length === 0 || (!exact_match && query.length === 1)) {
         return null;
       }
-      var res = $.getJSON('/api/v1/authors/' + encodeURIComponent(author_id), { as_prefix: exact_match ? 0 : 1 })
+      var res = $.getJSON('/api/v1/authors/' + encodeURIComponent(query), { as_prefix: exact_match ? 0 : 1 })
         .done(function(data) {
-          search_data.authors = data;
+          search_data.author_search_results = data;
         })
         .fail(function() {
         })

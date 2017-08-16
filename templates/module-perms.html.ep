@@ -1,18 +1,18 @@
 % layout 'main', title => 'Module Permissions Search';
-<form class="form-inline" id="module-perms-search-form" v-on:submit.prevent="search_module_perms">
+<form class="form-inline" v-on:submit.prevent="search_module_perms">
   <div class="form-group">
-    <label class="sr-only" for="module-perms-search-text-input">Module Name</label>
-    <input type="text" class="form-control" id="module-perms-search-text-input" placeholder="Module Name">
+    <label class="sr-only" for="module-perms-search-query">Module Name</label>
+    <input type="text" class="form-control" id="module-perms-search-query" v-model="module_perms_search_query" placeholder="Module Name">
   </div>
   <div class="checkbox">
-    <label><input type="checkbox" id="module-perms-search-exact-match"> Exact Match</label>
+    <label><input type="checkbox" v-model="module_perms_search_exact_match"> Exact Match</label>
   </div>
   <button type="submit" class="btn btn-primary">Search</button>
 </form>
 <br>
 <table class="table table-striped table-condensed">
   <tr><th>Module</th><th>Author</th><th>Permission</th><th>Owner</th></tr>
-  <tr v-for="perm in module_perms">
+  <tr v-for="perm in module_perms_search_results">
     <td><a v-bind:href="module_url(perm.module)">{{ perm.module }}</a></td>
     <td><a v-bind:href="author_url(perm.author)">{{ perm.author }}</a></td>
     <td>{{ permission_string(perm.best_permission) }}</td>
