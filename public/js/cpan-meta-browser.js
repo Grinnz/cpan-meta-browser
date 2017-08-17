@@ -141,4 +141,8 @@ var search_vm = new Vue({
   }
 });
 
-$(function() { search_vm.search_from_hash(); search_vm.do_search() });
+$(function() {
+  search_data.search_type = $('#search-type').val();
+  search_vm.search_from_hash();
+  search_vm.do_search();
+});
