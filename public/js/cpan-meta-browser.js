@@ -5,12 +5,14 @@
 
 var search_data = {
   search_type: null,
-  search_query: null,
+  search_query: '',
   search_exact_match: false,
   package_search_results: [],
   module_perms_search_results: [],
   author_perms_search_results: [],
-  author_search_results: []
+  author_search_results: [],
+  changing_hash: false,
+  changing_search: false
 };
 var search_vm = new Vue({
   el: '#search-tab',
@@ -117,9 +119,13 @@ var search_vm = new Vue({
       return author.substring(0, 1) + '/' + author.substring(0, 2) + '/' + author;
     },
     hash_from_search: function() {
-      var new_hash = (search_data.search_exact_match ? '=' : '~') + search_data.search_query;
-      if ('#' + new_hash !== window.location.hash) {
-        window.location.hash = new_hash;
+      if (!search_data.changing_search) {
+        var new_hash = (search_data.search_exact_match ? '=' : '~') + search_data.search_query;
+        if ('#' + new_hash !== window.location.hash) {
+          search_data.changing_hash = true;
+          window.location.hash = new_hash;
+          search_data.changing_hash = false;
+        }
       }
     },
     search_from_hash: function() {
@@ -144,5 +150,16 @@ var search_vm = new Vue({
 $(function() {
   search_data.search_type = $('#search-type').val();
   search_vm.search_from_hash();
+  search_data.changing_search = true;
   search_vm.do_search();
+  search_data.changing_search = false;
 });
+
+window.addEventListener('hashchange', function() {
+  if (!search_data.changing_hash) {
+    search_vm.search_from_hash();
+    search_data.changing_search = true;
+    search_vm.do_search();
+    search_data.changing_search = false;
+  }
+}, false);
