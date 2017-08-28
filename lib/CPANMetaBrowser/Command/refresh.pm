@@ -58,16 +58,22 @@ sub prepare_02packages ($app) {
   }
   
   my $db = $app->sqlite->db;
+  my %packages = map { ($_->[0] => 1) } @{$db->select('packages', ['package'])->arrays};
+  
   my $tx = $db->begin;
-  $db->delete('packages');
   
   while (defined(my $line = readline $fh)) {
     chomp $line;
     my ($package, $version, $path) = split /\s+/, $line, 3;
     next unless length $version;
     $version = undef if $version eq 'undef';
-    $db->insert('packages', {package => $package, version => $version, path => ($path // '')});
+    my $query = 'INSERT OR REPLACE INTO "packages" ("package","version","path") VALUES (?,?,?)';
+    $db->query($query, $package, $version, ($path // ''));
+    delete $packages{$package};
   }
+  
+  $db->delete('packages', {package => $_}) for keys %packages;
+  
   $tx->commit;
 }
 
@@ -81,19 +87,30 @@ sub prepare_06perms ($app) {
   }
   
   my $db = $app->sqlite->db;
-  my $tx = $db->begin;
-  $db->delete('perms');
+  my %perms;
+  $perms{$_->[0]}{$_->[1]} = 1 for @{$db->select('perms', ['userid','package'])->arrays};
   
   my $csv = Text::CSV_XS->new({binary => 1});
   $csv->bind_columns(\my $package, \my $userid, \my $best_permission);
+  
+  my $tx = $db->begin;
+  
   while ($csv->getline($fh)) {
     next unless length $package and length $userid and length $best_permission;
     unless (exists $valid_permission{$best_permission}) {
       $app->log->warn("06perms.txt: Found invalid permission type $best_permission for $userid on module $package");
       next;
     }
-    $db->insert('perms', {package => $package, userid => $userid, best_permission => $best_permission});
+    my $query = 'INSERT OR REPLACE INTO "perms" ("package","userid","best_permission") VALUES (?,?,?)';
+    $db->query($query, $package, $userid, $best_permission);
+    delete $perms{$userid}{$package};
   }
+  
+  foreach my $userid (keys %perms) {
+    my @packages = keys %{$perms{$userid}};
+    $db->delete('perms', {userid => $userid, package => {-in => \@packages}}) if @packages;
+  }
+  
   $tx->commit;
 }
 
@@ -105,9 +122,9 @@ sub prepare_00whois ($app) {
   my $dom = Mojo::DOM->new->xml(1)->parse($contents);
   
   my $db = $app->sqlite->db;
-  my $tx = $db->begin;
-  $db->delete('authors');
+  my %authors = map { ($_->[0] => 1) } @{$db->select('authors', ['cpanid'])->arrays};
   
+  my $tx = $db->begin;
   foreach my $author (@{$dom->find('cpanid')}) {
     next unless $author->at('type')->text eq 'author';
     my %details;
@@ -116,9 +133,13 @@ sub prepare_00whois ($app) {
       $details{$detail} = $elem->text;
     }
     next unless defined $details{id};
-    $db->insert('authors', {cpanid => $details{id}, fullname => $details{fullname}, asciiname => $details{asciiname}, email => $details{email},
-      homepage => $details{homepage}, introduced => $details{introduced}, has_cpandir => $details{has_cpandir}});
+    my $query = 'INSERT OR REPLACE INTO "authors" ("cpanid","fullname","asciiname","email","homepage","introduced","has_cpandir") VALUES (?,?,?,?,?,?,?)';
+    $db->query($query, @details{'id','fullname','asciiname','email','homepage','introduced','has_cpandir'});
+    delete $authors{$details{id}};
   }
+  
+  $db->delete('authors', {cpanid => $_}) for keys %authors;
+  
   $tx->commit;
 }
 
