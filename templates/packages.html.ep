@@ -15,7 +15,7 @@
   <tr v-for="package in package_search_results">
     <td><a v-bind:href="module_url(package.module)">{{ package.module }}</a></td>
     <td>{{ package.version }}</td>
-    <td>{{ package.owner }}</td>
+    <td><a v-bind:href="author_url(package.owner)">{{ package.owner }}</a></td>
     <td><a v-bind:href="author_url(package.uploader)">{{ package.uploader }}</a></td>
     <td><a v-bind:href="cpandir_url(package.path)">{{ package.path }}</a></td>
   </tr>
