@@ -31,3 +31,16 @@ CREATE TABLE IF NOT EXISTS "authors" (
 
 --2 down
 DROP TABLE IF EXISTS "authors";
+
+--3 up
+CREATE TABLE "perms_new" (
+  "package" TEXT NOT NULL,
+  "userid" TEXT NOT NULL,
+  "best_permission" TEXT NOT NULL CHECK ("best_permission" IN ('m','f','a','c')),
+  PRIMARY KEY ("package","userid")
+);
+INSERT INTO "perms_new" SELECT * FROM "perms";
+DROP TABLE "perms";
+ALTER TABLE "perms_new" RENAME TO "perms";
+CREATE INDEX IF NOT EXISTS "perms_userid_best_permission_idx" ON "perms" ("userid","best_permission");
+CREATE INDEX IF NOT EXISTS "perms_package_best_permission_idx" ON "perms" ("package","best_permission");

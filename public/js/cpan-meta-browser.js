@@ -102,6 +102,8 @@ var search_vm = new Vue({
           return 'modulelist';
         case 'f':
           return 'first-come';
+        case 'a':
+          return 'admin';
         case 'c':
           return 'co-maint';
         default:
