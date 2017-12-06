@@ -8,7 +8,6 @@ use 5.020;
 use Mojo::Base 'Mojolicious::Command';
 use experimental 'signatures';
 use IO::Uncompress::Gunzip qw(gunzip $GunzipError);
-use List::Util 'all';
 use Mojo::DOM;
 use Mojo::File 'path';
 use Mojo::URL;
@@ -76,10 +75,7 @@ sub prepare_02packages ($app) {
 sub update_package ($app, $data) {
   my $db = $app->sqlite->db;
   my $current = $db->select('packages', '*', {package => $data->{package}})->hashes->first;
-  return 1 if defined $current
-    and ((!defined $data->{version} and !defined $current->{version})
-      or (defined $data->{version} and defined $current->{version} and $data->{version} eq $current->{version}))
-    and $data->{path} eq $current->{path};
+  return 1 if keys_equal($data, $current, [qw(version path)]);
   my $query = 'INSERT OR REPLACE INTO "packages" ("package","version","path") VALUES (?,?,?)';
   $db->query($query, @$data{'package','version','path'});
 }
@@ -124,8 +120,7 @@ sub update_perms ($app, $data) {
   my $db = $app->sqlite->db;
   my $current = $db->select('perms', '*',
     {package => $data->{package}, userid => $data->{userid}})->hashes->first;
-  return 1 if defined $current
-    and $data->{best_permission} eq $current->{best_permission};
+  return 1 if keys_equal($data, $current, ['best_permission']);
   my $query = 'INSERT OR REPLACE INTO "perms" ("package","userid","best_permission") VALUES (?,?,?)';
   $db->query($query, @$data{'package','userid','best_permission'});
 }
@@ -162,15 +157,22 @@ sub prepare_00whois ($app) {
 sub update_author ($app, $data) {
   my $db = $app->sqlite->db;
   my $current = $db->select('authors', '*', {cpanid => $data->{cpanid}})->hashes->first;
-  return 1 if defined $current and all { (!defined $data->{$_} and !defined $current->{$_})
-    or (defined $data->{$_} and defined $current->{$_} and $data->{$_} eq $current->{$_}) }
-    qw(fullname asciiname email homepage introduced has_cpandir);
+  return 1 if keys_equal($data, $current, [qw(fullname asciiname email homepage introduced has_cpandir)]);
   my $query = 'INSERT OR REPLACE INTO "authors" ("cpanid","fullname","asciiname","email","homepage","introduced","has_cpandir") VALUES (?,?,?,?,?,?,?)';
   $db->query($query, @$data{'cpanid','fullname','asciiname','email','homepage','introduced','has_cpandir'});
 }
 
 sub delete_author ($app, $cpanid) {
   $app->sqlite->db->delete('authors', {cpanid => $cpanid});
+}
+
+sub keys_equal ($first, $second, $keys) {
+  return 0 unless defined $first and defined $second;
+  foreach my $key (@$keys) {
+    next if !defined $first->{$key} and !defined $second->{$key};
+    return 0 unless defined $first->{$key} and defined $second->{$key} and $first->{$key} eq $second->{$key};
+  }
+  return 1;
 }
 
 1;
