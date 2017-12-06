@@ -77,7 +77,7 @@ sub prepare_02packages ($app) {
   $tx->commit;
 }
 
-my %valid_permission = (m => 1, f => 1, c => 1);
+my %valid_permission = (a => 1, m => 1, f => 1, c => 1);
 sub prepare_06perms ($app) {
   my $perms_path = cache_file($app, 'modules/06perms.txt.gz', 1);
   
