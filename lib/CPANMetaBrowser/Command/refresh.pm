@@ -8,6 +8,7 @@ use 5.020;
 use Mojo::Base 'Mojolicious::Command';
 use experimental 'signatures';
 use IO::Uncompress::Gunzip qw(gunzip $GunzipError);
+use List::Util 'all';
 use Mojo::DOM;
 use Mojo::File 'path';
 use Mojo::URL;
@@ -57,24 +58,34 @@ sub prepare_02packages ($app) {
     last if $line =~ m/^\s*$/;
   }
   
-  my $db = $app->sqlite->db;
-  my %packages = map { ($_->[0] => 1) } @{$db->select('packages', ['package'])->arrays};
-  
-  my $tx = $db->begin;
+  my %packages = map { ($_->[0] => 1) } @{$app->sqlite->db->select('packages', ['package'])->arrays};
   
   while (defined(my $line = readline $fh)) {
     chomp $line;
     my ($package, $version, $path) = split /\s+/, $line, 3;
     next unless length $version;
-    $version = undef if $version eq 'undef';
-    my $query = 'INSERT OR REPLACE INTO "packages" ("package","version","path") VALUES (?,?,?)';
-    $db->query($query, $package, $version, ($path // ''));
+    my %package_data = (package => $package, path => ($path // ''));
+    $package_data{version} = $version if defined $version and $version ne 'undef';
+    update_package($app, \%package_data);
     delete $packages{$package};
   }
   
-  $db->delete('packages', {package => $_}) for keys %packages;
-  
-  $tx->commit;
+  delete_package($app, $_) for keys %packages;
+}
+
+sub update_package ($app, $data) {
+  my $db = $app->sqlite->db;
+  my $current = $db->select('packages', '*', {package => $data->{package}})->hashes->first;
+  return 1 if defined $current
+    and ((!defined $data->{version} and !defined $current->{version})
+      or (defined $data->{version} and defined $current->{version} and $data->{version} eq $current->{version}))
+    and $data->{path} eq $current->{path};
+  my $query = 'INSERT OR REPLACE INTO "packages" ("package","version","path") VALUES (?,?,?)';
+  $db->query($query, @$data{'package','version','path'});
+}
+
+sub delete_package ($app, $package) {
+  $app->sqlite->db->delete('packages', {package => $package});
 }
 
 my %valid_permission = (a => 1, m => 1, f => 1, c => 1);
@@ -86,14 +97,11 @@ sub prepare_06perms ($app) {
     last if $line =~ m/^\s*$/;
   }
   
-  my $db = $app->sqlite->db;
   my %perms;
-  $perms{$_->[0]}{$_->[1]} = 1 for @{$db->select('perms', ['userid','package'])->arrays};
+  $perms{$_->[0]}{$_->[1]} = 1 for @{$app->sqlite->db->select('perms', ['userid','package'])->arrays};
   
   my $csv = Text::CSV_XS->new({binary => 1});
   $csv->bind_columns(\my $package, \my $userid, \my $best_permission);
-  
-  my $tx = $db->begin;
   
   while ($csv->getline($fh)) {
     next unless length $package and length $userid and length $best_permission;
@@ -101,17 +109,29 @@ sub prepare_06perms ($app) {
       $app->log->warn("06perms.txt: Found invalid permission type $best_permission for $userid on module $package");
       next;
     }
-    my $query = 'INSERT OR REPLACE INTO "perms" ("package","userid","best_permission") VALUES (?,?,?)';
-    $db->query($query, $package, $userid, $best_permission);
+    my %perms_data = (package => $package, userid => $userid, best_permission => $best_permission);
+    update_perms($app, \%perms_data);
     delete $perms{$userid}{$package};
   }
   
   foreach my $userid (keys %perms) {
     my @packages = keys %{$perms{$userid}};
-    $db->delete('perms', {userid => $userid, package => {-in => \@packages}}) if @packages;
+    delete_perms($app, $userid, \@packages) if @packages;
   }
-  
-  $tx->commit;
+}
+
+sub update_perms ($app, $data) {
+  my $db = $app->sqlite->db;
+  my $current = $db->select('perms', '*',
+    {package => $data->{package}, userid => $data->{userid}})->hashes->first;
+  return 1 if defined $current
+    and $data->{best_permission} eq $current->{best_permission};
+  my $query = 'INSERT OR REPLACE INTO "perms" ("package","userid","best_permission") VALUES (?,?,?)';
+  $db->query($query, @$data{'package','userid','best_permission'});
+}
+
+sub delete_perms ($app, $userid, $packages) {
+  $app->sqlite->db->delete('perms', {userid => $userid, package => {-in => $packages}});
 }
 
 sub prepare_00whois ($app) {
@@ -121,10 +141,8 @@ sub prepare_00whois ($app) {
   
   my $dom = Mojo::DOM->new->xml(1)->parse($contents);
   
-  my $db = $app->sqlite->db;
-  my %authors = map { ($_->[0] => 1) } @{$db->select('authors', ['cpanid'])->arrays};
+  my %authors = map { ($_->[0] => 1) } @{$app->sqlite->db->select('authors', ['cpanid'])->arrays};
   
-  my $tx = $db->begin;
   foreach my $author (@{$dom->find('cpanid')}) {
     next unless $author->at('type')->text eq 'author';
     my %details;
@@ -133,14 +151,26 @@ sub prepare_00whois ($app) {
       $details{$detail} = $elem->text;
     }
     next unless defined $details{id};
-    my $query = 'INSERT OR REPLACE INTO "authors" ("cpanid","fullname","asciiname","email","homepage","introduced","has_cpandir") VALUES (?,?,?,?,?,?,?)';
-    $db->query($query, @details{'id','fullname','asciiname','email','homepage','introduced','has_cpandir'});
-    delete $authors{$details{id}};
+    $details{cpanid} = delete $details{id};
+    update_author($app, \%details);
+    delete $authors{$details{cpanid}};
   }
   
-  $db->delete('authors', {cpanid => $_}) for keys %authors;
-  
-  $tx->commit;
+  delete_author($app, $_) for keys %authors;
+}
+
+sub update_author ($app, $data) {
+  my $db = $app->sqlite->db;
+  my $current = $db->select('authors', '*', {cpanid => $data->{cpanid}})->hashes->first;
+  return 1 if defined $current and all { (!defined $data->{$_} and !defined $current->{$_})
+    or (defined $data->{$_} and defined $current->{$_} and $data->{$_} eq $current->{$_}) }
+    qw(fullname asciiname email homepage introduced has_cpandir);
+  my $query = 'INSERT OR REPLACE INTO "authors" ("cpanid","fullname","asciiname","email","homepage","introduced","has_cpandir") VALUES (?,?,?,?,?,?,?)';
+  $db->query($query, @$data{'cpanid','fullname','asciiname','email','homepage','introduced','has_cpandir'});
+}
+
+sub delete_author ($app, $cpanid) {
+  $app->sqlite->db->delete('authors', {cpanid => $cpanid});
 }
 
 1;

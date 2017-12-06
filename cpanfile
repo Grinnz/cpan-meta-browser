@@ -1,6 +1,7 @@
 requires 'perl' => '5.020';
 requires 'experimental';
 requires 'lib::relative';
+requires 'List::Util' => '1.33';
 requires 'Mojolicious' => '7.29';
 requires 'Mojolicious::Plugin::AccessLog';
 requires 'Mojo::JSON::MaybeXS';
