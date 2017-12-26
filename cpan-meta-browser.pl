@@ -9,29 +9,42 @@ use Mojolicious::Lite;
 use experimental 'signatures';
 use Mojo::JSON::MaybeXS;
 use Mojo::JSON qw(true false);
-use Mojo::SQLite;
 use Mojo::URL;
 use Mojo::Util 'trim';
 use HTTP::Tiny;
 
 use lib::relative 'lib';
 
-my $cache_dir = app->home->child('cache')->make_path;
-
-my $sqlite_path = app->home->child('cpan-meta.sqlite');
-my $sqlite = Mojo::SQLite->new->from_filename($sqlite_path);
-$sqlite->migrations->from_file(app->home->child('cpan-meta.sql'))->migrate;
+plugin 'Config' => {file => 'cpan-meta-browser.conf', default => {}};
 
 push @{app->commands->namespaces}, 'CPANMetaBrowser::Command';
 
 my $httptiny;
 helper 'httptiny' => sub { $httptiny //= HTTP::Tiny->new };
+
+my $cache_dir = app->home->child('cache')->make_path;
 helper 'cache_dir' => sub { $cache_dir };
-helper 'sqlite' => sub { $sqlite };
 
-plugin 'Config' => {file => 'cpan-meta-browser.conf', default => {}};
+my $backend = app->config->{backend} // 'sqlite';
+if ($backend eq 'sqlite') {
+  require Mojo::SQLite;
+  my $sqlite_path = app->config->{sqlite_path} // app->home->child('cpan-meta.sqlite');
+  my $sqlite = Mojo::SQLite->new->from_filename($sqlite_path);
+  my $migrations_path = app->config->{migrations_path} // app->home->child('cpan-meta-sqlite.sql');
+  $sqlite->migrations->from_file($migrations_path)->migrate;
+  helper 'sqlite' => sub { $sqlite };
+} elsif ($backend eq 'pg') {
+  require Mojo::Pg;
+  my $pg_url = app->config->{pg_url} // die "'pg_url' required for pg backend\n";
+  my $pg = Mojo::Pg->new($pg_url);
+  my $migrations_path = app->config->{migrations_path} // app->home->child('cpan-meta-pg.sql');
+  $pg->migrations->from_file($migrations_path)->migrate;
+  helper 'pg' => sub { $pg };
+} else {
+  die "Unknown backend '$backend' (should be 'sqlite' or 'pg')\n";
+}
+
 my $access_log = app->config->{access_log} // 'log/access.log';
-
 my $old_level = app->log->level;
 app->log->level('error'); # hack around AccessLog's dumb warning
 plugin 'AccessLog' => {log => $access_log} if $access_log;

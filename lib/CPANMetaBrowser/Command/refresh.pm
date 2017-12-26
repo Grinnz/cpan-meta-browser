@@ -57,7 +57,7 @@ sub prepare_02packages ($app) {
     last if $line =~ m/^\s*$/;
   }
   
-  my %packages = map { ($_->[0] => 1) } @{$app->sqlite->db->select('packages', ['package'])->arrays};
+  my %packages = map { ($_ => 1) } @{existing_packages($app)};
   
   while (defined(my $line = readline $fh)) {
     chomp $line;
@@ -70,6 +70,10 @@ sub prepare_02packages ($app) {
   }
   
   delete_package($app, $_) for keys %packages;
+}
+
+sub existing_packages ($app) {
+  return $app->sqlite->db->select('packages', ['package'])->arrays->map(sub { $_->[0] });
 }
 
 sub update_package ($app, $data) {
@@ -94,7 +98,7 @@ sub prepare_06perms ($app) {
   }
   
   my %perms;
-  $perms{$_->[0]}{$_->[1]} = 1 for @{$app->sqlite->db->select('perms', ['userid','package'])->arrays};
+  $perms{$_->{userid}}{$_->{package}} = 1 for @{existing_perms($app)};
   
   my $csv = Text::CSV_XS->new({binary => 1});
   $csv->bind_columns(\my $package, \my $userid, \my $best_permission);
@@ -114,6 +118,10 @@ sub prepare_06perms ($app) {
     my @packages = keys %{$perms{$userid}};
     delete_perms($app, $userid, \@packages) if @packages;
   }
+}
+
+sub existing_perms ($app) {
+  return $app->sqlite->db->select('perms', ['userid','package'])->hashes;
 }
 
 sub update_perms ($app, $data) {
@@ -136,7 +144,7 @@ sub prepare_00whois ($app) {
   
   my $dom = Mojo::DOM->new->xml(1)->parse($contents);
   
-  my %authors = map { ($_->[0] => 1) } @{$app->sqlite->db->select('authors', ['cpanid'])->arrays};
+  my %authors = map { ($_ => 1) } @{existing_authors($app)};
   
   foreach my $author (@{$dom->find('cpanid')}) {
     next unless $author->at('type')->text eq 'author';
@@ -152,6 +160,10 @@ sub prepare_00whois ($app) {
   }
   
   delete_author($app, $_) for keys %authors;
+}
+
+sub existing_authors ($app) {
+  return $app->sqlite->db->select('authors', ['cpanid'])->arrays->map(sub { $_->[0] });
 }
 
 sub update_author ($app, $data) {
