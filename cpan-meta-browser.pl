@@ -43,6 +43,7 @@ if ($backend eq 'sqlite') {
 } else {
   die "Unknown backend '$backend' (should be 'sqlite' or 'pg')\n";
 }
+helper 'backend' => sub { $backend };
 
 my $access_log = app->config->{access_log} // 'log/access.log';
 my $old_level = app->log->level;
