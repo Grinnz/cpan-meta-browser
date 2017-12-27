@@ -71,7 +71,7 @@ get '/api/v1/packages/:module' => sub ($c) {
       @params = ($module);
     }
     my $query = 'SELECT "p"."package" AS "module", "p"."version", "p"."path",
-      (SELECT "userid" FROM "perms" WHERE "package" COLLATE NOCASE = "p"."package" AND "best_permission"=? ORDER BY "userid" COLLATE NOCASE LIMIT 1) AS "owner"
+      (SELECT "userid" FROM "perms" WHERE "package" = "p"."package" AND "best_permission"=? ORDER BY "userid" COLLATE NOCASE LIMIT 1) AS "owner"
       FROM "packages" AS "p" WHERE ' . $where . ' ORDER BY "p"."package" COLLATE NOCASE';
     $details = $c->sqlite->db->query($query, 'f', @params)->hashes;
   } elsif ($c->backend eq 'pg') {
@@ -106,7 +106,7 @@ get '/api/v1/perms/by-module/:module' => sub ($c) {
       @params = ($module);
     }
     my $query = 'SELECT "p"."package" AS "module", "p"."userid" AS "author", "p"."best_permission",
-      (SELECT "userid" FROM "perms" WHERE "package" COLLATE NOCASE = "p"."package" AND "best_permission"=? ORDER BY "userid" COLLATE NOCASE LIMIT 1) AS "owner"
+      (SELECT "userid" FROM "perms" WHERE "package" = "p"."package" AND "best_permission"=? ORDER BY "userid" COLLATE NOCASE LIMIT 1) AS "owner"
       FROM "perms" AS "p" WHERE ' . $where . ' ORDER BY "p"."package" COLLATE NOCASE, "p"."userid" COLLATE NOCASE';
     $perms = $c->sqlite->db->query($query, 'f', @params)->hashes;
   } elsif ($c->backend eq 'pg') {
@@ -131,7 +131,7 @@ get '/api/v1/perms/by-author/:author' => sub ($c) {
   my $perms;
   if ($c->backend eq 'sqlite') {
     my $query = 'SELECT "p"."userid" AS "author", "p"."package" AS "module", "p"."best_permission",
-      (SELECT "userid" FROM "perms" WHERE "package" COLLATE NOCASE = "p"."package" AND "best_permission"=? ORDER BY "userid" COLLATE NOCASE LIMIT 1) AS "owner"
+      (SELECT "userid" FROM "perms" WHERE "package" = "p"."package" AND "best_permission"=? ORDER BY "userid" COLLATE NOCASE LIMIT 1) AS "owner"
       FROM "perms" AS "p" WHERE "p"."userid" COLLATE NOCASE = ? ORDER BY "p"."package" COLLATE NOCASE';
     $perms = $c->sqlite->db->query($query, 'f', $author)->hashes;
   } elsif ($c->backend eq 'pg') {
