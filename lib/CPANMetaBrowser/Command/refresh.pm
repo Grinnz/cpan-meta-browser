@@ -57,7 +57,10 @@ sub prepare_02packages ($app) {
     last if $line =~ m/^\s*$/;
   }
   
-  my %packages = map { ($_ => 1) } @{existing_packages($app)};
+  my $backend = $app->backend;
+  my $db = _backend_db($app);
+  
+  my %packages = map { ($_ => 1) } @{existing_packages($backend, $db)};
   
   while (defined(my $line = readline $fh)) {
     chomp $line;
@@ -65,30 +68,28 @@ sub prepare_02packages ($app) {
     next unless length $version;
     my %package_data = (package => $package, path => ($path // ''));
     $package_data{version} = $version if defined $version and $version ne 'undef';
-    update_package($app, \%package_data);
+    update_package($backend, $db, \%package_data);
     delete $packages{$package};
   }
   
-  delete_package($app, $_) for keys %packages;
+  delete_package($backend, $db, $_) for keys %packages;
 }
 
-sub existing_packages ($app) {
-  if ($app->backend eq 'sqlite') {
-    return $app->sqlite->db->select('packages', ['package'])->arrays->map(sub { $_->[0] });
-  } elsif ($app->backend eq 'pg') {
-    return $app->pg->db->select('packages', ['package'])->arrays->map(sub { $_->[0] });
+sub existing_packages ($backend, $db) {
+  if ($backend eq 'sqlite') {
+    return $db->select('packages', ['package'])->arrays->map(sub { $_->[0] });
+  } elsif ($backend eq 'pg') {
+    return $db->select('packages', ['package'])->arrays->map(sub { $_->[0] });
   }
 }
 
-sub update_package ($app, $data) {
-  if ($app->backend eq 'sqlite') {
-    my $db = $app->sqlite->db;
+sub update_package ($backend, $db, $data) {
+  if ($backend eq 'sqlite') {
     my $current = $db->select('packages', '*', {package => $data->{package}})->hashes->first;
     return 1 if _keys_equal($data, $current, [qw(version path)]);
     my $query = 'INSERT OR REPLACE INTO "packages" ("package","version","path") VALUES (?,?,?)';
     return $db->query($query, @$data{'package','version','path'});
-  } elsif ($app->backend eq 'pg') {
-    my $db = $app->pg->db;
+  } elsif ($backend eq 'pg') {
     my $current = $db->select('packages', '*', {package => $data->{package}})->hashes->first;
     return 1 if _keys_equal($data, $current, [qw(version path)]);
     my $query = 'INSERT INTO "packages" ("package","version","path") VALUES (?,?,?)
@@ -97,11 +98,11 @@ sub update_package ($app, $data) {
   }
 }
 
-sub delete_package ($app, $package) {
-  if ($app->backend eq 'sqlite') {
-    return $app->sqlite->db->delete('packages', {package => $package});
-  } elsif ($app->backend eq 'pg') {
-    return $app->pg->db->delete('packages', {package => $package});
+sub delete_package ($backend, $db, $package) {
+  if ($backend eq 'sqlite') {
+    return $db->delete('packages', {package => $package});
+  } elsif ($backend eq 'pg') {
+    return $db->delete('packages', {package => $package});
   }
 }
 
@@ -114,8 +115,11 @@ sub prepare_06perms ($app) {
     last if $line =~ m/^\s*$/;
   }
   
+  my $backend = $app->backend;
+  my $db = _backend_db($app);
+  
   my %perms;
-  $perms{$_->{userid}}{$_->{package}} = 1 for @{existing_perms($app)};
+  $perms{$_->{userid}}{$_->{package}} = 1 for @{existing_perms($backend, $db)};
   
   my $csv = Text::CSV_XS->new({binary => 1});
   $csv->bind_columns(\my $package, \my $userid, \my $best_permission);
@@ -127,33 +131,31 @@ sub prepare_06perms ($app) {
       next;
     }
     my %perms_data = (package => $package, userid => $userid, best_permission => $best_permission);
-    update_perms($app, \%perms_data);
+    update_perms($backend, $db, \%perms_data);
     delete $perms{$userid}{$package};
   }
   
   foreach my $userid (keys %perms) {
     my @packages = keys %{$perms{$userid}};
-    delete_perms($app, $userid, \@packages) if @packages;
+    delete_perms($backend, $db, $userid, \@packages) if @packages;
   }
 }
 
-sub existing_perms ($app) {
-  if ($app->backend eq 'sqlite') {
-    return $app->sqlite->db->select('perms', ['userid','package'])->hashes;
-  } elsif ($app->backend eq 'pg') {
-    return $app->pg->db->select('perms', ['userid','package'])->hashes;
+sub existing_perms ($backend, $db) {
+  if ($backend eq 'sqlite') {
+    return $db->select('perms', ['userid','package'])->hashes;
+  } elsif ($backend eq 'pg') {
+    return $db->select('perms', ['userid','package'])->hashes;
   }
 }
 
-sub update_perms ($app, $data) {
-  if ($app->backend eq 'sqlite') {
-    my $db = $app->sqlite->db;
+sub update_perms ($backend, $db, $data) {
+  if ($backend eq 'sqlite') {
     my $current = $db->select('perms', '*', {package => $data->{package}, userid => $data->{userid}})->hashes->first;
     return 1 if _keys_equal($data, $current, ['best_permission']);
     my $query = 'INSERT OR REPLACE INTO "perms" ("package","userid","best_permission") VALUES (?,?,?)';
     return $db->query($query, @$data{'package','userid','best_permission'});
-  } elsif ($app->backend eq 'pg') {
-    my $db = $app->pg->db;
+  } elsif ($backend eq 'pg') {
     my $current = $db->select('perms', '*', {package => $data->{package}, userid => $data->{userid}})->hashes->first;
     return 1 if _keys_equal($data, $current, ['best_permission']);
     my $query = 'INSERT INTO "perms" ("package","userid","best_permission") VALUES (?,?,?)
@@ -162,12 +164,12 @@ sub update_perms ($app, $data) {
   }
 }
 
-sub delete_perms ($app, $userid, $packages) {
+sub delete_perms ($backend, $db, $userid, $packages) {
   return 0 unless @$packages;
-  if ($app->backend eq 'sqlite') {
-    return $app->sqlite->db->delete('perms', {userid => $userid, package => {-in => $packages}});
-  } elsif ($app->backend eq 'pg') {
-    return $app->pg->db->delete('perms', {userid => $userid, package => \['= ANY (?)', $packages]});
+  if ($backend eq 'sqlite') {
+    return $db->delete('perms', {userid => $userid, package => {-in => $packages}});
+  } elsif ($backend eq 'pg') {
+    return $db->delete('perms', {userid => $userid, package => \['= ANY (?)', $packages]});
   }
 }
 
@@ -178,7 +180,10 @@ sub prepare_00whois ($app) {
   
   my $dom = Mojo::DOM->new->xml(1)->parse($contents);
   
-  my %authors = map { ($_ => 1) } @{existing_authors($app)};
+  my $backend = $app->backend;
+  my $db = _backend_db($app);
+  
+  my %authors = map { ($_ => 1) } @{existing_authors($backend, $db)};
   
   foreach my $author (@{$dom->find('cpanid')}) {
     next unless $author->at('type')->text eq 'author';
@@ -189,30 +194,28 @@ sub prepare_00whois ($app) {
     }
     next unless defined $details{id};
     $details{cpanid} = delete $details{id};
-    update_author($app, \%details);
+    update_author($backend, $db, \%details);
     delete $authors{$details{cpanid}};
   }
   
-  delete_author($app, $_) for keys %authors;
+  delete_author($backend, $db, $_) for keys %authors;
 }
 
-sub existing_authors ($app) {
-  if ($app->backend eq 'sqlite') {
-    return $app->sqlite->db->select('authors', ['cpanid'])->arrays->map(sub { $_->[0] });
-  } elsif ($app->backend eq 'pg') {
-    return $app->pg->db->select('authors', ['cpanid'])->arrays->map(sub { $_->[0] });
+sub existing_authors ($backend, $db) {
+  if ($backend eq 'sqlite') {
+    return $db->select('authors', ['cpanid'])->arrays->map(sub { $_->[0] });
+  } elsif ($backend eq 'pg') {
+    return $db->select('authors', ['cpanid'])->arrays->map(sub { $_->[0] });
   }
 }
 
-sub update_author ($app, $data) {
-  if ($app->backend eq 'sqlite') {
-    my $db = $app->sqlite->db;
+sub update_author ($backend, $db, $data) {
+  if ($backend eq 'sqlite') {
     my $current = $db->select('authors', '*', {cpanid => $data->{cpanid}})->hashes->first;
     return 1 if _keys_equal($data, $current, [qw(fullname asciiname email homepage introduced has_cpandir)]);
     my $query = 'INSERT OR REPLACE INTO "authors" ("cpanid","fullname","asciiname","email","homepage","introduced","has_cpandir") VALUES (?,?,?,?,?,?,?)';
     return $db->query($query, @$data{'cpanid','fullname','asciiname','email','homepage','introduced','has_cpandir'});
-  } elsif ($app->backend eq 'pg') {
-    my $db = $app->pg->db;
+  } elsif ($backend eq 'pg') {
     my $current = $db->select('authors', '*', {cpanid => $data->{cpanid}})->hashes->first;
     return 1 if _keys_equal($data, $current, [qw(fullname asciiname email homepage introduced has_cpandir)]);
     my $query = 'INSERT INTO "authors" ("cpanid","fullname","asciiname","email","homepage","introduced","has_cpandir") VALUES (?,?,?,?,?,?,?)
@@ -222,11 +225,11 @@ sub update_author ($app, $data) {
   }
 }
 
-sub delete_author ($app, $cpanid) {
-  if ($app->backend eq 'sqlite') {
-    return $app->sqlite->db->delete('authors', {cpanid => $cpanid});
-  } elsif ($app->backend eq 'pg') {
-    return $app->pg->db->delete('authors', {cpanid => $cpanid});
+sub delete_author ($backend, $db, $cpanid) {
+  if ($backend eq 'sqlite') {
+    return $db->delete('authors', {cpanid => $cpanid});
+  } elsif ($backend eq 'pg') {
+    return $db->delete('authors', {cpanid => $cpanid});
   }
 }
 
@@ -237,6 +240,13 @@ sub _keys_equal ($first, $second, $keys) {
     return 0 unless defined $first->{$key} and defined $second->{$key} and $first->{$key} eq $second->{$key};
   }
   return 1;
+}
+
+sub _backend_db ($app) {
+  my $backend = $app->backend;
+  return $app->sqlite->db if $backend eq 'sqlite';
+  return $app->pg->db if $backend eq 'pg';
+  die "Unknown application backend $backend\n";
 }
 
 1;
