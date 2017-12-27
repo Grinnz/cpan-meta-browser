@@ -126,7 +126,6 @@ var search_vm = new Vue({
         if ('#' + new_hash !== window.location.hash) {
           search_data.changing_hash = true;
           window.location.hash = new_hash;
-          search_data.changing_hash = false;
         }
       }
     },
@@ -164,4 +163,5 @@ window.addEventListener('hashchange', function() {
     search_vm.do_search();
     search_data.changing_search = false;
   }
+  search_data.changing_hash = false;
 }, false);
