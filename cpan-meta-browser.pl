@@ -70,9 +70,10 @@ get '/api/v1/packages/:module' => sub ($c) {
       $where = '"p"."package" COLLATE NOCASE = ?';
       @params = ($module);
     }
-    $details = $c->sqlite->db->query('SELECT "p"."package" AS "module", "p"."version", "p"."path",
+    my $query = 'SELECT "p"."package" AS "module", "p"."version", "p"."path",
       (SELECT "userid" FROM "perms" WHERE "package" COLLATE NOCASE = "p"."package" AND "best_permission"=? ORDER BY "userid" COLLATE NOCASE LIMIT 1) AS "owner"
-      FROM "packages" AS "p" WHERE ' . $where . ' ORDER BY "p"."package" COLLATE NOCASE', 'f', @params)->hashes;
+      FROM "packages" AS "p" WHERE ' . $where . ' ORDER BY "p"."package" COLLATE NOCASE';
+    $details = $c->sqlite->db->query($query, 'f', @params)->hashes;
   } elsif ($c->backend eq 'pg') {
     my ($where, @params);
     if ($as_prefix) {
@@ -82,9 +83,10 @@ get '/api/v1/packages/:module' => sub ($c) {
       $where = 'lower("p"."package") = lower(?)';
       @params = ($module);
     }
-    $details = $c->pg->db->query('SELECT "p"."package" AS "module", "p"."version", "p"."path",
+    my $query = 'SELECT "p"."package" AS "module", "p"."version", "p"."path",
       (SELECT "userid" FROM "perms" WHERE lower("package") = lower("p"."package") AND "best_permission"=? ORDER BY lower("userid") LIMIT 1) AS "owner"
-      FROM "packages" AS "p" WHERE ' . $where . ' ORDER BY lower("p"."package")', 'f', @params)->hashes;
+      FROM "packages" AS "p" WHERE ' . $where . ' ORDER BY lower("p"."package")';
+    $details = $c->pg->db->query($query, 'f', @params)->hashes;
   }
   ($_->{uploader}) = $_->{path} =~ m{^[^/]+/[^/]+/([a-z]+)}i for @$details;
   $c->render(json => $details);
@@ -103,9 +105,10 @@ get '/api/v1/perms/by-module/:module' => sub ($c) {
       $where = '"p"."package" COLLATE NOCASE = ?';
       @params = ($module);
     }
-    $perms = $c->sqlite->db->query('SELECT "p"."package" AS "module", "p"."userid" AS "author", "p"."best_permission",
+    my $query = 'SELECT "p"."package" AS "module", "p"."userid" AS "author", "p"."best_permission",
       (SELECT "userid" FROM "perms" WHERE "package" COLLATE NOCASE = "p"."package" AND "best_permission"=? ORDER BY "userid" COLLATE NOCASE LIMIT 1) AS "owner"
-      FROM "perms" AS "p" WHERE ' . $where . ' ORDER BY "p"."package" COLLATE NOCASE, "p"."userid" COLLATE NOCASE', 'f', @params)->hashes;
+      FROM "perms" AS "p" WHERE ' . $where . ' ORDER BY "p"."package" COLLATE NOCASE, "p"."userid" COLLATE NOCASE';
+    $perms = $c->sqlite->db->query($query, 'f', @params)->hashes;
   } elsif ($c->backend eq 'pg') {
     my ($where, @params);
     if ($as_prefix) {
@@ -127,13 +130,15 @@ get '/api/v1/perms/by-author/:author' => sub ($c) {
   my $author = trim($c->param('author') // '');
   my $perms;
   if ($c->backend eq 'sqlite') {
-    $perms = $c->sqlite->db->query('SELECT "p"."userid" AS "author", "p"."package" AS "module", "p"."best_permission",
+    my $query = 'SELECT "p"."userid" AS "author", "p"."package" AS "module", "p"."best_permission",
       (SELECT "userid" FROM "perms" WHERE "package" COLLATE NOCASE = "p"."package" AND "best_permission"=? ORDER BY "userid" COLLATE NOCASE LIMIT 1) AS "owner"
-      FROM "perms" AS "p" WHERE "p"."userid" COLLATE NOCASE = ? ORDER BY "p"."package" COLLATE NOCASE', 'f', $author)->hashes;
+      FROM "perms" AS "p" WHERE "p"."userid" COLLATE NOCASE = ? ORDER BY "p"."package" COLLATE NOCASE';
+    $perms = $c->sqlite->db->query($query, 'f', $author)->hashes;
   } elsif ($c->backend eq 'pg') {
-    $perms = $c->pg->db->query('SELECT "p"."userid" AS "author", "p"."package" AS "module", "p"."best_permission",
+    my $query = 'SELECT "p"."userid" AS "author", "p"."package" AS "module", "p"."best_permission",
       (SELECT "userid" FROM "perms" WHERE lower("package") = lower("p"."package") AND "best_permission"=? ORDER BY lower("userid") LIMIT 1) AS "owner"
-      FROM "perms" AS "p" WHERE lower("p"."userid") = lower(?) ORDER BY lower("p"."package")', 'f', $author)->hashes;
+      FROM "perms" AS "p" WHERE lower("p"."userid") = lower(?) ORDER BY lower("p"."package")';
+    $perms = $c->pg->db->query($query, 'f', $author)->hashes;
   }
   $c->render(json => $perms);
 };
@@ -151,8 +156,9 @@ get '/api/v1/authors/:author' => sub ($c) {
       $where = '"cpanid" COLLATE NOCASE = ?';
       @params = ($author);
     }
-    $details = $c->sqlite->db->query('SELECT "cpanid" AS "author", "fullname", "asciiname", "email", "homepage", "introduced", "has_cpandir"
-      FROM "authors" WHERE ' . $where . ' ORDER BY "cpanid" COLLATE NOCASE', @params)->hashes;
+    my $query = 'SELECT "cpanid" AS "author", "fullname", "asciiname", "email", "homepage", "introduced", "has_cpandir"
+      FROM "authors" WHERE ' . $where . ' ORDER BY "cpanid" COLLATE NOCASE';
+    $details = $c->sqlite->db->query($query, @params)->hashes;
   } elsif ($c->backend eq 'pg') {
     my ($where, @params);
     if ($as_prefix) {
@@ -162,8 +168,9 @@ get '/api/v1/authors/:author' => sub ($c) {
       $where = 'lower("cpanid") = lower(?)';
       @params = ($author);
     }
-    $details = $c->pg->db->query('SELECT "cpanid" AS "author", "fullname", "asciiname", "email", "homepage", "introduced", "has_cpandir"
-      FROM "authors" WHERE ' . $where . ' ORDER BY lower("cpanid")', @params)->hashes;
+    my $query = 'SELECT "cpanid" AS "author", "fullname", "asciiname", "email", "homepage", "introduced", "has_cpandir"
+      FROM "authors" WHERE ' . $where . ' ORDER BY lower("cpanid")';
+    $details = $c->pg->db->query($query, @params)->hashes;
   }
   $_->{has_cpandir} = $_->{has_cpandir} ? true : false for @$details;
   $c->render(json => $details);
