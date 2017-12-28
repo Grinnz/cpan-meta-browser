@@ -76,11 +76,20 @@ sub prepare_02packages ($app) {
 }
 
 sub existing_packages ($backend, $db) {
-  return $db->select('packages', ['package'])->arrays->map(sub { $_->[0] });
+  if ($backend eq 'redis') {
+    return $db->smembers('cpanmeta.packages');
+  } else {
+    return $db->select('packages', ['package'])->arrays->map(sub { $_->[0] });
+  }
 }
 
 sub update_package ($backend, $db, $data) {
-  my $current = $db->select('packages', '*', {package => $data->{package}})->hashes->first;
+  my $current;
+  if ($backend eq 'redis') {
+    $current = {@{$db->hgetall("cpanmeta.package.$data->{package}")}};
+  } else {
+    $current = $db->select('packages', '*', {package => $data->{package}})->hashes->first;
+  }
   return 1 if _keys_equal($data, $current, [qw(version path)]);
   if ($backend eq 'sqlite') {
     my $query = 'INSERT OR REPLACE INTO "packages" ("package","version","path") VALUES (?,?,?)';
@@ -89,11 +98,29 @@ sub update_package ($backend, $db, $data) {
     my $query = 'INSERT INTO "packages" ("package","version","path") VALUES (?,?,?)
       ON CONFLICT ("package") DO UPDATE SET "version" = EXCLUDED."version", "path" = EXCLUDED."path"';
     return $db->query($query, @$data{'package','version','path'});
+  } elsif ($backend eq 'redis') {
+    my $tx = $db->multi;
+    $tx->sadd('cpanmeta.packages', $data->{package});
+    $tx->hmset("cpanmeta.package.$data->{package}", %$data);
+    my $package_lc = lc $data->{package};
+    $tx->hset('cpanmeta.packages_lc', $package_lc => $data->{package});
+    $tx->zadd('cpanmeta.packages_sorted', 0 => $package_lc);
+    $tx->exec;
   }
 }
 
 sub delete_package ($backend, $db, $package) {
-  return $db->delete('packages', {package => $package});
+  if ($backend eq 'redis') {
+    my $tx = $db->multi;
+    $tx->srem('cpanmeta.packages', $package);
+    $tx->del("cpanmeta.package.$package");
+    my $package_lc = lc $package;
+    $tx->hdel('cpanmeta.packages_lc', $package_lc);
+    $tx->zrem('cpanmeta.packages_sorted', $package_lc);
+    $tx->exec;
+  } else {
+    return $db->delete('packages', {package => $package});
+  }
 }
 
 my %valid_permission = (a => 1, m => 1, f => 1, c => 1);
@@ -132,11 +159,20 @@ sub prepare_06perms ($app) {
 }
 
 sub existing_perms ($backend, $db) {
-  return $db->select('perms', ['userid','package'])->hashes;
+  if ($backend eq 'redis') {
+    return [map { +{userid => $_->[0], package => $_->[1]} } map { [split /\//, $_, 2] } @{$db->smembers('cpanmeta.perms')}];
+  } else {
+    return $db->select('perms', ['userid','package'])->hashes;
+  }
 }
 
 sub update_perms ($backend, $db, $data) {
-  my $current = $db->select('perms', '*', {package => $data->{package}, userid => $data->{userid}})->hashes->first;
+  my $current;
+  if ($backend eq 'redis') {
+    $current = {@{$db->hgetall("cpanmeta.perms.$data->{userid}/$data->{package}")}};
+  } else {
+    $current = $db->select('perms', '*', {package => $data->{package}, userid => $data->{userid}})->hashes->first;
+  }
   return 1 if _keys_equal($data, $current, ['best_permission']);
   if ($backend eq 'sqlite') {
     my $query = 'INSERT OR REPLACE INTO "perms" ("package","userid","best_permission") VALUES (?,?,?)';
@@ -145,6 +181,20 @@ sub update_perms ($backend, $db, $data) {
     my $query = 'INSERT INTO "perms" ("package","userid","best_permission") VALUES (?,?,?)
       ON CONFLICT ("package","userid") DO UPDATE SET "best_permission" = EXCLUDED."best_permission"';
     return $db->query($query, @$data{'package','userid','best_permission'});
+  } elsif ($backend eq 'redis') {
+    my $tx = $db->multi;
+    $tx->sadd('cpanmeta.perms', "$data->{userid}/$data->{package}");
+    $tx->hmset("cpanmeta.perms.$data->{userid}/$data->{package}", %$data);
+    $tx->hset('cpanmeta.package_owners', $data->{package} => $data->{userid}) if $data->{best_permission} eq 'f';
+    my $package_lc = lc $data->{package};
+    my $userid_lc = lc $data->{userid};
+    $tx->hset('cpanmeta.perms_packages_lc', $package_lc => $data->{package});
+    $tx->hset('cpanmeta.perms_userids_lc', $userid_lc => $data->{userid});
+    $tx->zadd('cpanmeta.perms_packages_sorted', 0 => $package_lc);
+    $tx->zadd('cpanmeta.perms_userids_sorted', 0 => $userid_lc);
+    $tx->zadd("cpanmeta.perms_userids_for_package.$data->{package}", 0 => $userid_lc);
+    $tx->zadd("cpanmeta.perms_packages_for_userid.$data->{userid}", 0 => $package_lc);
+    $tx->exec;
   }
 }
 
@@ -153,6 +203,40 @@ sub delete_perms ($backend, $db, $userid, $packages) {
     return $db->delete('perms', {userid => $userid, package => {-in => $packages}});
   } elsif ($backend eq 'pg') {
     return $db->delete('perms', {userid => $userid, package => \['= ANY (?)', $packages]});
+  } elsif ($backend eq 'redis') {
+    my $tx = $db->multi;
+    my $userid_lc = lc $userid;
+    $tx->zrem("cpanmeta.perms_userids_for_package.$_", $userid_lc) for @$packages;
+    $tx->zrem("cpanmeta.perms_packages_for_userid.$userid", map { lc } @$packages) if @$packages;
+    $tx->exec;
+    
+    $tx = $db->multi;
+    
+    foreach my $package (@$packages) {
+      $tx->srem('cpanmeta.perms', "$userid/$package");
+      
+      $tx->watch("cpanmeta.perms.$userid/$package");
+      if (($db->hget("cpanmeta.perms.$userid/$package", 'best_permission') // '') eq 'f') {
+        $tx->hdel('cpanmeta.package_owners', $package);
+      }
+      
+      $tx->del("cpanmeta.perms.$userid/$package");
+      
+      my $package_lc = lc $package;
+      $tx->watch("cpanmeta.perms_userids_for_package.$package");
+      unless ($db->zcard("cpanmeta.perms_userids_for_package.$package")) {
+        $tx->hdel('cpanmeta.perms_packages_lc', $package_lc);
+        $tx->zrem('cpanmeta.perms_packages_sorted', $package_lc);
+      }
+    }
+    
+    $tx->watch("cpanmeta.perms_packages_for_userid.$userid");
+    unless ($db->zcard("cpanmeta.perms_packages_for_userid.$userid")) {
+      $tx->hdel('cpanmeta.perms_userids_lc', $userid_lc);
+      $tx->zrem('cpanmeta.perms_userids_sorted', $userid_lc);
+    }
+    
+    $tx->exec;
   }
 }
 
@@ -185,11 +269,20 @@ sub prepare_00whois ($app) {
 }
 
 sub existing_authors ($backend, $db) {
-  return $db->select('authors', ['cpanid'])->arrays->map(sub { $_->[0] });
+  if ($backend eq 'redis') {
+    return $db->smembers('cpanmeta.authors');
+  } else {
+    return $db->select('authors', ['cpanid'])->arrays->map(sub { $_->[0] });
+  }
 }
 
 sub update_author ($backend, $db, $data) {
-  my $current = $db->select('authors', '*', {cpanid => $data->{cpanid}})->hashes->first;
+  my $current;
+  if ($backend eq 'redis') {
+    $current = {@{$db->hgetall("cpanmeta.author.$data->{cpanid}")}};
+  } else {
+    $current = $db->select('authors', '*', {cpanid => $data->{cpanid}})->hashes->first;
+  }
   return 1 if _keys_equal($data, $current, [qw(fullname asciiname email homepage introduced has_cpandir)]);
   if ($backend eq 'sqlite') {
     my $query = 'INSERT OR REPLACE INTO "authors" ("cpanid","fullname","asciiname","email","homepage","introduced","has_cpandir") VALUES (?,?,?,?,?,?,?)';
@@ -199,11 +292,29 @@ sub update_author ($backend, $db, $data) {
       ON CONFLICT ("cpanid") DO UPDATE SET "fullname" = EXCLUDED."fullname", "asciiname" = EXCLUDED."asciiname", "email" = EXCLUDED."email",
       "homepage" = EXCLUDED."homepage", "introduced" = EXCLUDED."introduced", "has_cpandir" = EXCLUDED."has_cpandir"';
     return $db->query($query, @$data{'cpanid','fullname','asciiname','email','homepage','introduced','has_cpandir'});
+  } elsif ($backend eq 'redis') {
+    my $tx = $db->multi;
+    $tx->sadd('cpanmeta.authors', $data->{cpanid});
+    $tx->hmset("cpanmeta.author.$data->{cpanid}", %$data);
+    my $cpanid_lc = lc $data->{cpanid};
+    $tx->hset('cpanmeta.cpanids_lc', $cpanid_lc => $data->{cpanid});
+    $tx->zadd('cpanmeta.cpanids_sorted', 0 => $cpanid_lc);
+    $tx->exec;
   }
 }
 
 sub delete_author ($backend, $db, $cpanid) {
-  return $db->delete('authors', {cpanid => $cpanid});
+  if ($backend eq 'redis') {
+    my $tx = $db->multi;
+    $tx->srem('cpanmeta.authors', $cpanid);
+    $tx->del("cpanmeta.author.$cpanid");
+    my $cpanid_lc = lc $cpanid;
+    $tx->hdel('cpanmeta.cpanids_lc', $cpanid_lc);
+    $tx->zrem('cpanmeta.cpanids_sorted', $cpanid_lc);
+    $tx->exec;
+  } else {
+    return $db->delete('authors', {cpanid => $cpanid});
+  }
 }
 
 sub _keys_equal ($first, $second, $keys) {
@@ -219,6 +330,7 @@ sub _backend_db ($app) {
   my $backend = $app->backend;
   return $app->sqlite->db if $backend eq 'sqlite';
   return $app->pg->db if $backend eq 'pg';
+  return $app->redis if $backend eq 'redis';
   die "Unknown application backend $backend\n";
 }
 
