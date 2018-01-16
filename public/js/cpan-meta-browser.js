@@ -9,8 +9,11 @@ var search_data = {
   search_exact_match: false,
   search_author: '',
   package_search_results: [],
+  package_data_refreshed: null,
   perms_search_results: [],
+  perms_data_refreshed: null,
   author_search_results: [],
+  author_data_refreshed: null,
   changing_hash: false,
   changing_search: false
 };
@@ -37,9 +40,10 @@ var search_vm = new Vue({
         return null;
       }
       search_vm.hash_from_search();
-      var res = $.getJSON('/api/v1/packages/' + encodeURIComponent(query), { as_prefix: exact_match ? 0 : 1 })
+      var res = $.getJSON('/api/v2/packages/' + encodeURIComponent(query), { as_prefix: exact_match ? 0 : 1 })
         .done(function(data) {
-          search_data.package_search_results = data;
+          search_data.package_search_results = data.data;
+          search_data.package_data_refreshed = data.last_updated;
         })
         .fail(function() {
         });
@@ -52,9 +56,10 @@ var search_vm = new Vue({
         return null;
       }
       search_vm.hash_from_search();
-      var res = $.getJSON('/api/v1/perms', { author: author, module: query, as_prefix: exact_match ? 0 : 1 })
+      var res = $.getJSON('/api/v2/perms', { author: author, module: query, as_prefix: exact_match ? 0 : 1 })
         .done(function(data) {
-          search_data.perms_search_results = data;
+          search_data.perms_search_results = data.data;
+          search_data.perms_data_refreshed = data.last_updated;
         })
         .fail(function() {
         });
@@ -66,9 +71,10 @@ var search_vm = new Vue({
         return null;
       }
       search_vm.hash_from_search();
-      var res = $.getJSON('/api/v1/authors/' + encodeURIComponent(query), { as_prefix: exact_match ? 0 : 1 })
+      var res = $.getJSON('/api/v2/authors/' + encodeURIComponent(query), { as_prefix: exact_match ? 0 : 1 })
         .done(function(data) {
-          search_data.author_search_results = data;
+          search_data.author_search_results = data.data;
+          search_data.author_data_refreshed = data.last_updated;
         })
         .fail(function() {
         })
@@ -105,11 +111,14 @@ var search_vm = new Vue({
       }
     },
     to_date_string: function(epoch) {
-      if (epoch != null) {
-        var date = new Date(epoch * 1000);
-        return date.toUTCString();
-      }
-      return '';
+      if (epoch === null) { return ''; }
+      var date = new Date(epoch * 1000);
+      return date.toString();
+    },
+    to_utc_string: function(epoch) {
+      if (epoch === null) { return ''; }
+      var date = new Date(epoch * 1000);
+      return date.toUTCString();
     },
     author_cpandir: function(author) {
       return author.substring(0, 1) + '/' + author.substring(0, 2) + '/' + author;

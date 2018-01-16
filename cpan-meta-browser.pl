@@ -337,12 +337,12 @@ helper get_authors => sub ($c, $author, $as_prefix = 0) {
 helper get_refreshed => sub ($c, $type) {
   if ($c->backend eq 'sqlite') {
     my $query = q{SELECT strftime('%s',"last_updated") FROM "refreshed" WHERE "type" = ?};
-    return +($c->sqlite->db->query($query, $type)->arrays->first // [])->[0] // 0;
+    return +($c->sqlite->db->query($query, $type)->arrays->first // [])->[0];
   } elsif ($c->backend eq 'pg') {
     my $query = 'SELECT extract(epoch from "last_updated") FROM "refreshed" WHERE "type" = ?';
-    return +($c->pg->db->query($query, $type)->arrays->first // [])->[0] // 0;
+    return +($c->pg->db->query($query, $type)->arrays->first // [])->[0];
   } elsif ($c->backend eq 'redis') {
-    return $c->redis->hget('cpanmeta.refreshed', $type) // 0;
+    return $c->redis->hget('cpanmeta.refreshed', $type);
   }
 };
 

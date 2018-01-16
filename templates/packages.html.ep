@@ -30,7 +30,12 @@
   </tbody>
   <tfoot>
     <tr>
-      <td colspan="5"><small>Data retrieved from <a href="https://cpan.metacpan.org/modules/02packages.details.txt">02packages.details.txt</a></small></td>
+      <td colspan="5">
+        <small v-if="package_data_refreshed">
+          Data retrieved from <a href="https://cpan.metacpan.org/modules/02packages.details.txt">02packages.details.txt</a>
+          at {{ to_date_string(package_data_refreshed) }}
+        </small>
+      </td>
     </tr>
   </tfoot>
 </table>
