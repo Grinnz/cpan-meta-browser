@@ -412,26 +412,23 @@ if ($backend eq 'sqlite') {
     if (length $author) {
       my $start = lc $author;
       my ($userid_lc) = @{$redis->zrangebylex('cpanmeta.perms_userids_sorted', "[$start", "[$start")};
-      if (defined $userid_lc) {
-        my $userid = $redis->hget('cpanmeta.perms_userids_lc', $userid_lc);
-        if (defined $userid) {
-          my @range = ('-', '+');
-          if (length $module) {
-            my $start = lc $module;
-            if ($as_prefix) {
-              my $end = $start =~ s/(.)\z/chr(ord($1)+1)/er;
-              @range = ("[$start", "($end");
-            } else {
-              @range = ("[$start", "[$start");
-            }
-          }
-          my $packages_lc = $redis->zrangebylex("cpanmeta.perms_packages_for_userid.$userid", @range);
-          foreach my $package_lc (@$packages_lc) {
-            my $package = $redis->hget('cpanmeta.perms_packages_lc', $package_lc) // next;
-            my $owner = $redis->hget('cpanmeta.package_owners', $package);
-            push @userid_packages, [$userid, $package, $owner];
-          }
+      return [] unless defined $userid_lc;
+      my $userid = $redis->hget('cpanmeta.perms_userids_lc', $userid_lc) // return [];
+      my @range = ('-', '+');
+      if (length $module) {
+        my $start = lc $module;
+        if ($as_prefix) {
+          my $end = $start =~ s/(.)\z/chr(ord($1)+1)/er;
+          @range = ("[$start", "($end");
+        } else {
+          @range = ("[$start", "[$start");
         }
+      }
+      my $packages_lc = $redis->zrangebylex("cpanmeta.perms_packages_for_userid.$userid", @range);
+      foreach my $package_lc (@$packages_lc) {
+        my $package = $redis->hget('cpanmeta.perms_packages_lc', $package_lc) // next;
+        my $owner = $redis->hget('cpanmeta.package_owners', $package);
+        push @userid_packages, [$userid, $package, $owner];
       }
     } else {
       my $packages_lc;
