@@ -122,97 +122,120 @@ get '/api/v1/packages/:module' => sub ($c) {
 get '/api/v1/perms/by-module/:module' => sub ($c) {
   my $module = trim($c->param('module') // '');
   my $as_prefix = $c->param('as_prefix');
+  $c->get_perms('', $module, $as_prefix);
+};
+
+get '/api/v1/perms/by-author/:author' => sub ($c) {
+  my $author = trim($c->param('author') // '');
+  $c->get_perms($author);
+};
+
+get '/api/v1/perms' => sub ($c) {
+  my $author = trim($c->param('author') // '');
+  my $module = trim($c->param('module') // '');
+  my $as_prefix = $c->param('as_prefix');
+  $c->get_perms($author, $module, $as_prefix);
+};
+
+helper get_perms => sub ($c, $author, $module = '', $as_prefix = 0) {
+  return $c->render(json => []) unless length $author or length $module;
   my $perms;
   if ($c->backend eq 'sqlite') {
-    my ($where, @params);
-    if ($as_prefix) {
-      $where = '"p"."package" LIKE ? ESCAPE ?';
-      @params = (($module =~ s/[%_]/\\$1/gr) . '%', '\\');
-    } else {
-      $where = '"p"."package" COLLATE NOCASE = ?';
-      @params = ($module);
+    my (@where, @params);
+    if (length $author) {
+      push @where, '"p"."userid" COLLATE NOCASE = ?';
+      push @params, $author;
     }
+    if (length $module) {
+      if ($as_prefix) {
+        push @where, '"p"."package" LIKE ? ESCAPE ?';
+        push @params, ($module =~ s/[%_]/\\$1/gr) . '%', '\\';
+      } else {
+        push @where, '"p"."package" COLLATE NOCASE = ?';
+        push @params, $module;
+      }
+    }
+    my $where = join ' AND ', @where;
     my $query = 'SELECT "p"."package" AS "module", "p"."userid" AS "author", "p"."best_permission",
       (SELECT "userid" FROM "perms" WHERE "package" = "p"."package" AND "best_permission"=? ORDER BY "userid" COLLATE NOCASE LIMIT 1) AS "owner"
       FROM "perms" AS "p" WHERE ' . $where . ' ORDER BY "p"."package" COLLATE NOCASE, "p"."userid" COLLATE NOCASE';
     $perms = $c->sqlite->db->query($query, 'f', @params)->hashes;
   } elsif ($c->backend eq 'pg') {
-    my ($where, @params);
-    if ($as_prefix) {
-      $where = 'lower("p"."package") LIKE lower(?)';
-      @params = (($module =~ s/[%_]/\\$1/gr) . '%');
-    } else {
-      $where = 'lower("p"."package") = lower(?)';
-      @params = ($module);
+    my (@where, @params);
+    if (length $author) {
+      push @where, 'lower("p"."userid") = lower(?)';
+      push @params, $author;
     }
+    if (length $module) {
+      if ($as_prefix) {
+        push @where, 'lower("p"."package") LIKE lower(?)';
+        push @params, ($module =~ s/[%_]/\\$1/gr) . '%';
+      } else {
+        push @where, 'lower("p"."package") = lower(?)';
+        push @params, $module;
+      }
+    }
+    my $where = join ' AND ', @where;
     my $query = 'SELECT "p"."package" AS "module", "p"."userid" AS "author", "p"."best_permission",
       (SELECT "userid" FROM "perms" WHERE lower("package") = lower("p"."package") AND "best_permission"=? ORDER BY lower("userid") LIMIT 1) AS "owner"
       FROM "perms" AS "p" WHERE ' . $where . ' ORDER BY lower("p"."package"), lower("p"."userid")';
     $perms = $c->pg->db->query($query, 'f', @params)->hashes;
   } elsif ($c->backend eq 'redis') {
     my $redis = $c->redis;
-    my $packages_lc;
-    my $start = lc $module;
-    if ($as_prefix) {
-      my $end = $start =~ s/(.)\z/chr(ord($1)+1)/er;
-      $packages_lc = $redis->zrangebylex('cpanmeta.perms_packages_sorted', "[$start", "($end");
-    } else {
-      $packages_lc = $redis->zrangebylex('cpanmeta.perms_packages_sorted', "[$start", "[$start");
-    }
     $perms = [];
-    foreach my $package_lc (@$packages_lc) {
-      my $package = $redis->hget('cpanmeta.perms_packages_lc', $package_lc) // next;
-      my $owner = $redis->hget('cpanmeta.package_owners', $package);
-      my $userids_lc = $redis->zrangebylex("cpanmeta.perms_userids_for_package.$package", '-', '+');
-      foreach my $userid_lc (@$userids_lc) {
-        my $userid = $redis->hget('cpanmeta.perms_userids_lc', $userid_lc) // next;
-        my %perms_details = @{$redis->hgetall("cpanmeta.perms.$userid/$package")};
-        push @$perms, {
-          module => $perms_details{package},
-          author => $perms_details{userid},
-          best_permission => $perms_details{best_permission},
-          owner => $owner,
-        };
-      }
-    }
-  }
-  $c->render(json => $perms);
-};
-
-get '/api/v1/perms/by-author/:author' => sub ($c) {
-  my $author = trim($c->param('author') // '');
-  my $perms;
-  if ($c->backend eq 'sqlite') {
-    my $query = 'SELECT "p"."userid" AS "author", "p"."package" AS "module", "p"."best_permission",
-      (SELECT "userid" FROM "perms" WHERE "package" = "p"."package" AND "best_permission"=? ORDER BY "userid" COLLATE NOCASE LIMIT 1) AS "owner"
-      FROM "perms" AS "p" WHERE "p"."userid" COLLATE NOCASE = ? ORDER BY "p"."package" COLLATE NOCASE';
-    $perms = $c->sqlite->db->query($query, 'f', $author)->hashes;
-  } elsif ($c->backend eq 'pg') {
-    my $query = 'SELECT "p"."userid" AS "author", "p"."package" AS "module", "p"."best_permission",
-      (SELECT "userid" FROM "perms" WHERE lower("package") = lower("p"."package") AND "best_permission"=? ORDER BY lower("userid") LIMIT 1) AS "owner"
-      FROM "perms" AS "p" WHERE lower("p"."userid") = lower(?) ORDER BY lower("p"."package")';
-    $perms = $c->pg->db->query($query, 'f', $author)->hashes;
-  } elsif ($c->backend eq 'redis') {
-    my $redis = $c->redis;
-    my $start = lc $author;
-    my ($userid_lc) = @{$redis->zrangebylex('cpanmeta.perms_userids_sorted', "[$start", "[$start")};
-    $perms = [];
-    if (defined $userid_lc) {
-      my $userid = $redis->hget('cpanmeta.perms_userids_lc', $userid_lc);
-      if (defined $userid) {
-        my $packages_lc = $redis->zrangebylex("cpanmeta.perms_packages_for_userid.$userid", '-', '+');
-        foreach my $package_lc (@$packages_lc) {
-          my $package = $redis->hget('cpanmeta.perms_packages_lc', $package_lc) // next;
-          my %perms_details = @{$redis->hgetall("cpanmeta.perms.$userid/$package")};
-          my $owner = $redis->hget('cpanmeta.package_owners', $package);
-          push @$perms, {
-            author => $perms_details{userid},
-            module => $perms_details{package},
-            best_permission => $perms_details{best_permission},
-            owner => $owner,
-          };
+    my @userid_packages;
+    if (length $author) {
+      my $start = lc $author;
+      my ($userid_lc) = @{$redis->zrangebylex('cpanmeta.perms_userids_sorted', "[$start", "[$start")};
+      if (defined $userid_lc) {
+        my $userid = $redis->hget('cpanmeta.perms_userids_lc', $userid_lc);
+        if (defined $userid) {
+          my @range = ('-', '+');
+          if (length $module) {
+            my $start = lc $module;
+            if ($as_prefix) {
+              my $end = $start =~ s/(.)\z/chr(ord($1)+1)/er;
+              @range = ("[$start", "($end");
+            } else {
+              @range = ("[$start", "[$start");
+            }
+          }
+          my $packages_lc = $redis->zrangebylex("cpanmeta.perms_packages_for_userid.$userid", @range);
+          foreach my $package_lc (@$packages_lc) {
+            my $package = $redis->hget('cpanmeta.perms_packages_lc', $package_lc) // next;
+            my $owner = $redis->hget('cpanmeta.package_owners', $package);
+            push @userid_packages, [$userid, $package, $owner];
+          }
         }
       }
+    } else {
+      my $packages_lc;
+      my $start = lc $module;
+      if ($as_prefix) {
+        my $end = $start =~ s/(.)\z/chr(ord($1)+1)/er;
+        $packages_lc = $redis->zrangebylex('cpanmeta.perms_packages_sorted', "[$start", "($end");
+      } else {
+        $packages_lc = $redis->zrangebylex('cpanmeta.perms_packages_sorted', "[$start", "[$start");
+      }
+      foreach my $package_lc (@$packages_lc) {
+        my $package = $redis->hget('cpanmeta.perms_packages_lc', $package_lc) // next;
+        my $owner = $redis->hget('cpanmeta.package_owners', $package);
+        my $userids_lc = $redis->zrangebylex("cpanmeta.perms_userids_for_package.$package", '-', '+');
+        foreach my $userid_lc (@$userids_lc) {
+          my $userid = $redis->hget('cpanmeta.perms_userids_lc', $userid_lc) // next;
+          push @userid_packages, [$userid, $package, $owner];
+        }
+      }
+    }
+    foreach my $userid_package (@userid_packages) {
+      my ($userid, $package, $owner) = @$userid_package;
+      my %perms_details = @{$redis->hgetall("cpanmeta.perms.$userid/$package")};
+      push @$perms, {
+        author => $perms_details{userid},
+        module => $perms_details{package},
+        best_permission => $perms_details{best_permission},
+        owner => $owner,
+      };
     }
   }
   $c->render(json => $perms);
