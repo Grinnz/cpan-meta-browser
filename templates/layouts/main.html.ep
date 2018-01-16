@@ -12,10 +12,10 @@
     <p class="text-right"><a href="https://github.com/Grinnz/cpan-meta-browser">Source on GitHub</a></p>
     <h2>CPAN Meta Browser</h2>
     <nav class="nav nav-tabs nav-justified" role="tablist">
-      <a role="presentation" class="nav-item nav-link<% if (current_route 'packages' or current_route 'index') { %> active<% } %>" href="/packages" aria-controls="packages" role="tab">Module Index Search</a>
-      <a role="presentation" class="nav-item nav-link<% if (current_route 'module-perms') { %> active<% } %>" href="/module-perms" aria-controls="module-perms" role="tab">Module Permissions Search</a>
-      <a role="presentation" class="nav-item nav-link<% if (current_route 'author-perms') { %> active<% } %>" href="/author-perms" aria-controls="author-perms" role="tab">Author Permissions Search</a>
-      <a role="presentation" class="nav-item nav-link<% if (current_route 'authors') { %> active<% } %>" href="/authors" aria-controls="authors" role="tab">Author Search</a>
+      <a class="nav-item nav-link<% if (current_route 'packages' or current_route 'index') { %> active<% } %>" href="/packages">Module Index Search</a>
+      <a class="nav-item nav-link<% if (current_route 'module-perms') { %> active<% } %>" href="/module-perms">Module Permissions Search</a>
+      <a class="nav-item nav-link<% if (current_route 'author-perms') { %> active<% } %>" href="/author-perms">Author Permissions Search</a>
+      <a class="nav-item nav-link<% if (current_route 'authors') { %> active<% } %>" href="/authors">Author Search</a>
     </nav>
     <br>
     <div id="search-tab" class="tab-content">
