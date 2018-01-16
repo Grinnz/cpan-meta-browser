@@ -5,21 +5,17 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CPAN Meta Browser<% if (title) { %> - <%= title %><% } %></title>
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/css/bootstrap.min.css" integrity="sha384-Zug+QiDoJOrZ5t4lssLdxGhVrurbmBWopoEl+M6BdEfwnCJZtKxi1KgxUyJq13dy" crossorigin="anonymous">
 </head>
 <body>
   <div class="container">
     <p class="text-right"><a href="https://github.com/Grinnz/cpan-meta-browser">Source on GitHub</a></p>
-    <div class="page-header">
-      <h1>CPAN Meta Browser</h1>
-    </div>
-    <nav>
-      <ul class="nav nav-tabs nav-justified" role="tablist">
-        <li role="presentation"<% if (current_route 'packages' or current_route 'index') { %> class="active"<% } %>><a href="/packages" aria-controls="packages" role="tab">Module Index Search</a></li>
-        <li role="presentation"<% if (current_route 'module-perms') { %> class="active"<% } %>><a href="/module-perms" aria-controls="module-perms" role="tab">Module Permissions Search</a></li>
-        <li role="presentation"<% if (current_route 'author-perms') { %> class="active"<% } %>><a href="/author-perms" aria-controls="author-perms" role="tab">Author Permissions Search</a></li>
-        <li role="presentation"<% if (current_route 'authors') { %> class="active"<% } %>><a href="/authors" aria-controls="authors" role="tab">Author Search</a></li>
-      </ul>
+    <h2>CPAN Meta Browser</h2>
+    <nav class="nav nav-tabs nav-justified" role="tablist">
+      <a role="presentation" class="nav-item nav-link<% if (current_route 'packages' or current_route 'index') { %> active<% } %>" href="/packages" aria-controls="packages" role="tab">Module Index Search</a>
+      <a role="presentation" class="nav-item nav-link<% if (current_route 'module-perms') { %> active<% } %>" href="/module-perms" aria-controls="module-perms" role="tab">Module Permissions Search</a>
+      <a role="presentation" class="nav-item nav-link<% if (current_route 'author-perms') { %> active<% } %>" href="/author-perms" aria-controls="author-perms" role="tab">Author Permissions Search</a>
+      <a role="presentation" class="nav-item nav-link<% if (current_route 'authors') { %> active<% } %>" href="/authors" aria-controls="authors" role="tab">Author Search</a>
     </nav>
     <br>
     <div id="search-tab" class="tab-content">

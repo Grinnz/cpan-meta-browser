@@ -1,23 +1,33 @@
 % layout 'main', title => 'Author Search', search_type => 'authors';
 <form class="form-inline" id="search-form" v-on:submit.prevent="do_search">
-  <div class="form-group">
-    <label class="sr-only" for="search-query">Author PAUSE ID</label>
-    <input type="text" class="form-control" id="search-query" v-model="search_query" placeholder="Author PAUSE ID">
-  </div>
-  <div class="checkbox">
-    <label><input type="checkbox" v-model="search_exact_match"> Exact Match</label>
+  <label class="sr-only" for="search-query">Author PAUSE ID</label>
+  <input type="text" class="form-control mr-2" id="search-query" v-model="search_query" placeholder="Author PAUSE ID">
+  <div class="form-check form-check-inline mr-2">
+    <input type="checkbox" class="form-check-input" id="search-exact-match" v-model="search_exact_match">
+    <label class="form-check-label" for="search-exact-match">Exact Match</label>
   </div>
   <button type="submit" class="btn btn-primary">Search</button>
 </form>
 <br>
-<table class="table table-striped table-condensed">
-  <tr><th>Author</th><th>Name</th><th>Email</th><th>Homepage</th><th>Introduced</th><th>CPAN Directory</th></tr>
-  <tr v-for="author in author_search_results">
-    <td><a v-bind:href="author_url(author.author)">{{ author.author }}</a></td>
-    <td v-bind:title="author.asciiname">{{ author.fullname }}</td>
-    <td><span v-if="author.email != null && author.email === 'CENSORED'">{{ author.email }}</span><a v-else v-bind:href="'mailto:' + author.email">{{ author.email }}</a></td>
-    <td><a v-bind:href="author.homepage">{{ author.homepage }}</td>
-    <td>{{ to_date_string(author.introduced) }}</td>
-    <td><a v-if="author.has_cpandir" v-bind:href="cpandir_url(author_cpandir(author.author))">{{ author_cpandir(author.author) }}</a></td>
-  </tr>
+<table class="table table-striped table-sm">
+  <thead class="thead-light">
+    <tr>
+      <th>Author</th>
+      <th>Name</th>
+      <th>Email</th>
+      <th>Homepage</th>
+      <th>Introduced</th>
+      <th>CPAN Directory</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr v-for="author in author_search_results">
+      <td><a v-bind:href="author_url(author.author)">{{ author.author }}</a></td>
+      <td v-bind:title="author.asciiname">{{ author.fullname }}</td>
+      <td><span v-if="author.email != null && author.email === 'CENSORED'">{{ author.email }}</span><a v-else v-bind:href="'mailto:' + author.email">{{ author.email }}</a></td>
+      <td><a v-bind:href="author.homepage">{{ author.homepage }}</td>
+      <td>{{ to_date_string(author.introduced) }}</td>
+      <td><a v-if="author.has_cpandir" v-bind:href="cpandir_url(author_cpandir(author.author))">{{ author_cpandir(author.author) }}</a></td>
+    </tr>
+  </tbody>
 </table>
