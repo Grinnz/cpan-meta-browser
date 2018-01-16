@@ -66,7 +66,35 @@ get '/authors';
 get '/api/v1/packages/:module' => sub ($c) {
   my $module = trim($c->param('module') // '');
   my $as_prefix = $c->param('as_prefix');
-  my $details;
+  $c->get_packages($module, $as_prefix);
+};
+
+get '/api/v1/perms/by-module/:module' => sub ($c) {
+  my $module = trim($c->param('module') // '');
+  my $as_prefix = $c->param('as_prefix');
+  $c->get_perms('', $module, $as_prefix);
+};
+
+get '/api/v1/perms/by-author/:author' => sub ($c) {
+  my $author = trim($c->param('author') // '');
+  $c->get_perms($author);
+};
+
+get '/api/v1/perms' => sub ($c) {
+  my $author = trim($c->param('author') // '');
+  my $module = trim($c->param('module') // '');
+  my $as_prefix = $c->param('as_prefix');
+  $c->get_perms($author, $module, $as_prefix);
+};
+
+get '/api/v1/authors/:author' => sub ($c) {
+  my $author = trim($c->param('author') // '');
+  my $as_prefix = $c->param('as_prefix');
+  $c->get_authors($author, $as_prefix);
+};
+
+helper get_packages => sub ($c, $module, $as_prefix) {
+  my $details = [];
   if ($c->backend eq 'sqlite') {
     my ($where, @params);
     if ($as_prefix) {
@@ -103,7 +131,6 @@ get '/api/v1/packages/:module' => sub ($c) {
     } else {
       $packages_lc = $redis->zrangebylex('cpanmeta.packages_sorted', "[$start", "[$start");
     }
-    $details = [];
     foreach my $package_lc (@$packages_lc) {
       my $package = $redis->hget('cpanmeta.packages_lc', $package_lc) // next;
       my %package_details = @{$redis->hgetall("cpanmeta.package.$package")};
@@ -120,27 +147,9 @@ get '/api/v1/packages/:module' => sub ($c) {
   $c->render(json => $details);
 };
 
-get '/api/v1/perms/by-module/:module' => sub ($c) {
-  my $module = trim($c->param('module') // '');
-  my $as_prefix = $c->param('as_prefix');
-  $c->get_perms('', $module, $as_prefix);
-};
-
-get '/api/v1/perms/by-author/:author' => sub ($c) {
-  my $author = trim($c->param('author') // '');
-  $c->get_perms($author);
-};
-
-get '/api/v1/perms' => sub ($c) {
-  my $author = trim($c->param('author') // '');
-  my $module = trim($c->param('module') // '');
-  my $as_prefix = $c->param('as_prefix');
-  $c->get_perms($author, $module, $as_prefix);
-};
-
 helper get_perms => sub ($c, $author, $module = '', $as_prefix = 0) {
   return $c->render(json => []) unless length $author or length $module;
-  my $perms;
+  my $perms = [];
   if ($c->backend eq 'sqlite') {
     my (@where, @params);
     if (length $author) {
@@ -183,7 +192,6 @@ helper get_perms => sub ($c, $author, $module = '', $as_prefix = 0) {
     $perms = $c->pg->db->query($query, 'f', @params)->hashes;
   } elsif ($c->backend eq 'redis') {
     my $redis = $c->redis;
-    $perms = [];
     my @userid_packages;
     if (length $author) {
       my $start = lc $author;
@@ -242,10 +250,8 @@ helper get_perms => sub ($c, $author, $module = '', $as_prefix = 0) {
   $c->render(json => $perms);
 };
 
-get '/api/v1/authors/:author' => sub ($c) {
-  my $author = trim($c->param('author') // '');
-  my $as_prefix = $c->param('as_prefix');
-  my $details;
+helper get_authors => sub ($c, $author, $as_prefix = 0) {
+  my $details = [];
   if ($c->backend eq 'sqlite') {
     my ($where, @params);
     if ($as_prefix) {
@@ -280,7 +286,6 @@ get '/api/v1/authors/:author' => sub ($c) {
     } else {
       $cpanids_lc = $redis->zrangebylex('cpanmeta.cpanids_sorted', "[$start", "[$start");
     }
-    $details = [];
     foreach my $cpanid_lc (@$cpanids_lc) {
       my $cpanid = $redis->hget('cpanmeta.cpanids_lc', $cpanid_lc) // next;
       my %author = @{$redis->hgetall("cpanmeta.author.$cpanid")};

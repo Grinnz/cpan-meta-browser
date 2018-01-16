@@ -6,7 +6,7 @@
   <input type="text" class="form-control mr-sm-2 mb-2 mb-sm-0" id="search-query" v-model="search_query" placeholder="Module Name">
   <div class="form-check form-check-inline mr-sm-2 mb-2 mb-sm-0">
     <input type="checkbox" class="form-check-input" id="search-exact-match" v-model="search_exact_match">
-    <label class="form-check-label" for="search-exact-match">Exact Match</label>
+    <label class="form-check-label" for="search-exact-match">Exact Match (Module)</label>
   </div>
   <button type="submit" class="btn btn-primary">Search</button>
 </form>
