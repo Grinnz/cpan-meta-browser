@@ -30,13 +30,11 @@
       <td><a v-if="author.has_cpandir" v-bind:href="cpandir_url(author_cpandir(author.author))">{{ author_cpandir(author.author) }}</a></td>
     </tr>
   </tbody>
-  <tfoot>
+  <tfoot v-if="author_data_refreshed">
     <tr>
       <td colspan="6">
-        <small v-if="author_data_refreshed">
-          Data retrieved from <a href="https://cpan.metacpan.org/authors/00whois.xml">00whois.xml</a>
-          at {{ to_date_string(author_data_refreshed) }}
-        </small>
+        <small>Data retrieved from <a href="https://cpan.metacpan.org/authors/00whois.xml">00whois.xml</a>
+        at {{ to_date_string(author_data_refreshed) }}</small>
       </td>
     </tr>
   </tfoot>
