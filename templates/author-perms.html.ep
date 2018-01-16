@@ -1,7 +1,7 @@
 % layout 'main', title => 'Author Permissions Search', search_type => 'author_perms';
 <form class="form-inline" id="search-form" v-on:submit.prevent="do_search">
   <label class="sr-only" for="search-query">Author PAUSE ID</label>
-  <input type="text" class="form-control mr-2" id="search-query" v-model="search_query" placeholder="Author PAUSE ID">
+  <input type="text" class="form-control mr-2 mb-2 mb-sm-0" id="search-query" v-model="search_query" placeholder="Author PAUSE ID">
   <button type="submit" class="btn btn-primary">Search</button>
 </form>
 <br>
