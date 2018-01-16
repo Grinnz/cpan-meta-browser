@@ -50,6 +50,8 @@ sub cache_file ($app, $filename, $inflate = 0) {
 }
 
 sub prepare_02packages ($app) {
+  my $cache_time = time;
+  
   my $packages_path = cache_file($app, 'modules/02packages.details.txt.gz', 1);
   
   my $fh = path($packages_path)->open('r');
@@ -73,6 +75,8 @@ sub prepare_02packages ($app) {
   }
   
   delete_package($backend, $db, $_) for keys %packages;
+  
+  update_refreshed($backend, $db, 'packages', $cache_time);
 }
 
 sub existing_packages ($backend, $db) {
@@ -125,6 +129,8 @@ sub delete_package ($backend, $db, $package) {
 
 my %valid_permission = (a => 1, m => 1, f => 1, c => 1);
 sub prepare_06perms ($app) {
+  my $cache_time = time;
+  
   my $perms_path = cache_file($app, 'modules/06perms.txt.gz', 1);
   
   my $fh = path($perms_path)->open('r');
@@ -156,6 +162,8 @@ sub prepare_06perms ($app) {
     my @packages = keys %{$perms{$userid}};
     delete_perms($backend, $db, $userid, \@packages) if @packages;
   }
+  
+  update_refreshed($backend, $db, 'perms', $cache_time);
 }
 
 sub existing_perms ($backend, $db) {
@@ -241,6 +249,8 @@ sub delete_perms ($backend, $db, $userid, $packages) {
 }
 
 sub prepare_00whois ($app) {
+  my $cache_time = time;
+  
   my $whois_path = cache_file($app, 'authors/00whois.xml');
   
   my $contents = decode 'UTF-8', path($whois_path)->slurp;
@@ -266,6 +276,8 @@ sub prepare_00whois ($app) {
   }
   
   delete_author($backend, $db, $_) for keys %authors;
+  
+  update_refreshed($backend, $db, 'authors', $cache_time);
 }
 
 sub existing_authors ($backend, $db) {
@@ -314,6 +326,19 @@ sub delete_author ($backend, $db, $cpanid) {
     $tx->exec;
   } else {
     return $db->delete('authors', {cpanid => $cpanid});
+  }
+}
+
+sub update_refreshed ($backend, $db, $type, $time) {
+  if ($backend eq 'sqlite') {
+    my $query = q{INSERT OR REPLACE INTO "refreshed" ("type","last_updated") VALUES (?,datetime(?, 'unixepoch'))};
+    return $db->query($query, $type, $time);
+  } elsif ($backend eq 'pg') {
+    my $query = 'INSERT INTO "refreshed" ("type","last_updated") VALUES (?,to_timestamp(?))
+      ON CONFLICT ("type") DO UPDATE SET "last_updated" = EXCLUDED."last_updated"';
+    return $db->query($query, $type, $time);
+  } elsif ($backend eq 'redis') {
+    $db->hset('cpanmeta.refreshed', $type => $time);
   }
 }
 

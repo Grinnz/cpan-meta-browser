@@ -66,31 +66,61 @@ get '/authors';
 get '/api/v1/packages/:module' => sub ($c) {
   my $module = trim($c->param('module') // '');
   my $as_prefix = $c->param('as_prefix');
-  $c->get_packages($module, $as_prefix);
+  my $packages = $c->get_packages($module, $as_prefix);
+  $c->render(json => $packages);
 };
 
 get '/api/v1/perms/by-module/:module' => sub ($c) {
   my $module = trim($c->param('module') // '');
   my $as_prefix = $c->param('as_prefix');
-  $c->get_perms('', $module, $as_prefix);
+  my $perms = $c->get_perms('', $module, $as_prefix);
+  $c->render(json => $perms);
 };
 
 get '/api/v1/perms/by-author/:author' => sub ($c) {
   my $author = trim($c->param('author') // '');
-  $c->get_perms($author);
+  my $perms = $c->get_perms($author);
+  $c->render(json => $perms);
 };
 
 get '/api/v1/perms' => sub ($c) {
   my $author = trim($c->param('author') // '');
   my $module = trim($c->param('module') // '');
   my $as_prefix = $c->param('as_prefix');
-  $c->get_perms($author, $module, $as_prefix);
+  my $perms = $c->get_perms($author, $module, $as_prefix);
+  $c->render(json => $perms);
 };
 
 get '/api/v1/authors/:author' => sub ($c) {
   my $author = trim($c->param('author') // '');
   my $as_prefix = $c->param('as_prefix');
-  $c->get_authors($author, $as_prefix);
+  my $authors = $c->get_authors($author, $as_prefix);
+  $c->render(json => $authors);
+};
+
+get '/api/v2/packages/:module' => sub ($c) {
+  my $module = trim($c->param('module') // '');
+  my $as_prefix = $c->param('as_prefix');
+  my $packages = $c->get_packages($module, $as_prefix);
+  my $last_updated = $c->get_refreshed('packages');
+  $c->render(json => {data => $packages, last_updated => $last_updated});
+};
+
+get '/api/v2/perms' => sub ($c) {
+  my $author = trim($c->param('author') // '');
+  my $module = trim($c->param('module') // '');
+  my $as_prefix = $c->param('as_prefix');
+  my $perms = $c->get_perms($author, $module, $as_prefix);
+  my $last_updated = $c->get_refreshed('perms');
+  $c->render(json => {data => $perms, last_updated => $last_updated});
+};
+
+get '/api/v2/authors/:author' => sub ($c) {
+  my $author = trim($c->param('author') // '');
+  my $as_prefix = $c->param('as_prefix');
+  my $authors = $c->get_authors($author, $as_prefix);
+  my $last_updated = $c->get_refreshed('authors');
+  $c->render(json => {data => $authors, last_updated => $last_updated});
 };
 
 helper get_packages => sub ($c, $module, $as_prefix) {
@@ -144,11 +174,11 @@ helper get_packages => sub ($c, $module, $as_prefix) {
     }
   }
   ($_->{uploader}) = $_->{path} =~ m{^[^/]+/[^/]+/([a-z]+)}i for @$details;
-  $c->render(json => $details);
+  return $details;
 };
 
 helper get_perms => sub ($c, $author, $module = '', $as_prefix = 0) {
-  return $c->render(json => []) unless length $author or length $module;
+  return [] unless length $author or length $module;
   my $perms = [];
   if ($c->backend eq 'sqlite') {
     my (@where, @params);
@@ -247,7 +277,7 @@ helper get_perms => sub ($c, $author, $module = '', $as_prefix = 0) {
       };
     }
   }
-  $c->render(json => $perms);
+  return $perms;
 };
 
 helper get_authors => sub ($c, $author, $as_prefix = 0) {
@@ -301,7 +331,19 @@ helper get_authors => sub ($c, $author, $as_prefix = 0) {
     }
   }
   $_->{has_cpandir} = $_->{has_cpandir} ? true : false for @$details;
-  $c->render(json => $details);
+  return $details;
+};
+
+helper get_refreshed => sub ($c, $type) {
+  if ($c->backend eq 'sqlite') {
+    my $query = q{SELECT strftime('%s',"last_updated") FROM "refreshed" WHERE "type" = ?};
+    return +($c->sqlite->db->query($query, $type)->arrays->first // [])->[0] // 0;
+  } elsif ($c->backend eq 'pg') {
+    my $query = 'SELECT extract(epoch from "last_updated") FROM "refreshed" WHERE "type" = ?';
+    return +($c->pg->db->query($query, $type)->arrays->first // [])->[0] // 0;
+  } elsif ($c->backend eq 'redis') {
+    return $c->redis->hget('cpanmeta.refreshed', $type) // 0;
+  }
 };
 
 app->start;

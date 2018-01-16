@@ -32,3 +32,12 @@ DROP TABLE IF EXISTS "packages";
 DROP TABLE IF EXISTS "perms";
 DROP TABLE IF EXISTS "authors";
 DROP TYPE IF EXISTS "cpan_permission";
+
+--2 up
+CREATE TABLE IF NOT EXISTS "refreshed" (
+  "type" CHARACTER VARYING NOT NULL PRIMARY KEY,
+  "last_updated" TIMESTAMP WITH TIME ZONE NOT NULL
+);
+
+--2 down
+DROP TABLE IF EXISTS "refreshed";

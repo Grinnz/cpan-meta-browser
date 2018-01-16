@@ -44,3 +44,12 @@ DROP TABLE "perms";
 ALTER TABLE "perms_new" RENAME TO "perms";
 CREATE INDEX IF NOT EXISTS "perms_userid_best_permission_idx" ON "perms" ("userid","best_permission");
 CREATE INDEX IF NOT EXISTS "perms_package_best_permission_idx" ON "perms" ("package","best_permission");
+
+--4 up
+CREATE TABLE IF NOT EXISTS "refreshed" (
+  "type" TEXT NOT NULL PRIMARY KEY,
+  "last_updated" TEXT NOT NULL
+);
+
+--4 down
+DROP TABLE IF EXISTS "refreshed";
