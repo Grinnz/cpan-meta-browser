@@ -28,4 +28,9 @@
       <td><a v-bind:href="cpandir_url(package.path)">{{ package.path }}</a></td>
     </tr>
   </tbody>
+  <tfoot>
+    <tr>
+      <td colspan="5"><small>Data retrieved from <a href="https://cpan.metacpan.org/modules/02packages.details.txt">02packages.details.txt</a></small></td>
+    </tr>
+  </tfoot>
 </table>

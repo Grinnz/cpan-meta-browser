@@ -22,4 +22,9 @@
       <td><a v-bind:href="author_url(perm.owner)">{{ perm.owner }}</a></td>
     </tr>
   </tbody>
+  <tfoot>
+    <tr>
+      <td colspan="4"><small>Data retrieved from <a href="https://cpan.metacpan.org/modules/06perms.txt">06perms.txt</a></small></td>
+    </tr>
+  </tfoot>
 </table>
