@@ -123,9 +123,9 @@ get '/api/v2/authors/:author' => sub ($c) {
   $c->render(json => {data => $authors, last_updated => $last_updated});
 };
 
-helper get_packages => sub ($c, $module, $as_prefix) {
-  my $details = [];
-  if ($c->backend eq 'sqlite') {
+if ($backend eq 'sqlite') {
+  helper get_packages => sub ($c, $module, $as_prefix) {
+    my $details = [];
     my ($where, @params);
     if ($as_prefix) {
       $where = '"p"."package" LIKE ? ESCAPE ?';
@@ -138,7 +138,59 @@ helper get_packages => sub ($c, $module, $as_prefix) {
       (SELECT "userid" FROM "perms" WHERE "package" = "p"."package" AND "best_permission"=? ORDER BY "userid" COLLATE NOCASE LIMIT 1) AS "owner"
       FROM "packages" AS "p" WHERE ' . $where . ' ORDER BY "p"."package" COLLATE NOCASE';
     $details = $c->sqlite->db->query($query, 'f', @params)->hashes;
-  } elsif ($c->backend eq 'pg') {
+    ($_->{uploader}) = $_->{path} =~ m{^[^/]+/[^/]+/([a-z]+)}i for @$details;
+    return $details;
+  };
+  
+  helper get_perms => sub ($c, $author, $module = '', $as_prefix = 0) {
+    return [] unless length $author or length $module;
+    my $perms = [];
+    my (@where, @params);
+    if (length $author) {
+      push @where, '"p"."userid" COLLATE NOCASE = ?';
+      push @params, $author;
+    }
+    if (length $module) {
+      if ($as_prefix) {
+        push @where, '"p"."package" LIKE ? ESCAPE ?';
+        push @params, ($module =~ s/[%_]/\\$1/gr) . '%', '\\';
+      } else {
+        push @where, '"p"."package" COLLATE NOCASE = ?';
+        push @params, $module;
+      }
+    }
+    my $where = join ' AND ', @where;
+    my $query = 'SELECT "p"."package" AS "module", "p"."userid" AS "author", "p"."best_permission",
+      (SELECT "userid" FROM "perms" WHERE "package" = "p"."package" AND "best_permission"=? ORDER BY "userid" COLLATE NOCASE LIMIT 1) AS "owner"
+      FROM "perms" AS "p" WHERE ' . $where . ' ORDER BY "p"."package" COLLATE NOCASE, "p"."userid" COLLATE NOCASE';
+    $perms = $c->sqlite->db->query($query, 'f', @params)->hashes;
+    return $perms;
+  };
+  
+  helper get_authors => sub ($c, $author, $as_prefix = 0) {
+    my $details = [];
+    my ($where, @params);
+    if ($as_prefix) {
+      $where = '"cpanid" LIKE ? ESCAPE ?';
+      @params = (($author =~ s/[%_]/\\$1/gr) . '%', '\\');
+    } else {
+      $where = '"cpanid" COLLATE NOCASE = ?';
+      @params = ($author);
+    }
+    my $query = 'SELECT "cpanid" AS "author", "fullname", "asciiname", "email", "homepage", "introduced", "has_cpandir"
+      FROM "authors" WHERE ' . $where . ' ORDER BY "cpanid" COLLATE NOCASE';
+    $details = $c->sqlite->db->query($query, @params)->hashes;
+    $_->{has_cpandir} = $_->{has_cpandir} ? true : false for @$details;
+    return $details;
+  };
+  
+  helper get_refreshed => sub ($c, $type) {
+    my $query = q{SELECT strftime('%s',"last_updated") FROM "refreshed" WHERE "type" = ?};
+    return +($c->sqlite->db->query($query, $type)->arrays->first // [])->[0];
+  };
+} elsif ($backend eq 'pg') {
+  helper get_packages => sub ($c, $module, $as_prefix) {
+    my $details = [];
     my ($where, @params);
     if ($as_prefix) {
       $where = 'lower("p"."package") LIKE lower(?)';
@@ -151,7 +203,59 @@ helper get_packages => sub ($c, $module, $as_prefix) {
       (SELECT "userid" FROM "perms" WHERE lower("package") = lower("p"."package") AND "best_permission"=? ORDER BY lower("userid") LIMIT 1) AS "owner"
       FROM "packages" AS "p" WHERE ' . $where . ' ORDER BY lower("p"."package")';
     $details = $c->pg->db->query($query, 'f', @params)->hashes;
-  } elsif ($c->backend eq 'redis') {
+    ($_->{uploader}) = $_->{path} =~ m{^[^/]+/[^/]+/([a-z]+)}i for @$details;
+    return $details;
+  };
+  
+  helper get_perms => sub ($c, $author, $module = '', $as_prefix = 0) {
+    return [] unless length $author or length $module;
+    my $perms = [];
+    my (@where, @params);
+    if (length $author) {
+      push @where, 'lower("p"."userid") = lower(?)';
+      push @params, $author;
+    }
+    if (length $module) {
+      if ($as_prefix) {
+        push @where, 'lower("p"."package") LIKE lower(?)';
+        push @params, ($module =~ s/[%_]/\\$1/gr) . '%';
+      } else {
+        push @where, 'lower("p"."package") = lower(?)';
+        push @params, $module;
+      }
+    }
+    my $where = join ' AND ', @where;
+    my $query = 'SELECT "p"."package" AS "module", "p"."userid" AS "author", "p"."best_permission",
+      (SELECT "userid" FROM "perms" WHERE lower("package") = lower("p"."package") AND "best_permission"=? ORDER BY lower("userid") LIMIT 1) AS "owner"
+      FROM "perms" AS "p" WHERE ' . $where . ' ORDER BY lower("p"."package"), lower("p"."userid")';
+    $perms = $c->pg->db->query($query, 'f', @params)->hashes;
+    return $perms;
+  };
+  
+  helper get_authors => sub ($c, $author, $as_prefix = 0) {
+    my $details = [];
+    my ($where, @params);
+    if ($as_prefix) {
+      $where = 'lower("cpanid") LIKE lower(?)';
+      @params = (($author =~ s/[%_]/\\$1/gr) . '%');
+    } else {
+      $where = 'lower("cpanid") = lower(?)';
+      @params = ($author);
+    }
+    my $query = 'SELECT "cpanid" AS "author", "fullname", "asciiname", "email", "homepage", "introduced", "has_cpandir"
+      FROM "authors" WHERE ' . $where . ' ORDER BY lower("cpanid")';
+    $details = $c->pg->db->query($query, @params)->hashes;
+    $_->{has_cpandir} = $_->{has_cpandir} ? true : false for @$details;
+    return $details;
+  };
+  
+  helper get_refreshed => sub ($c, $type) {
+    my $query = 'SELECT extract(epoch from "last_updated") FROM "refreshed" WHERE "type" = ?';
+    return +($c->pg->db->query($query, $type)->arrays->first // [])->[0];
+  };
+} elsif ($backend eq 'redis') {
+  helper get_packages => sub ($c, $module, $as_prefix) {
+    my $details = [];
     my $redis = $c->redis;
     my $packages_lc;
     my $start = lc $module;
@@ -172,55 +276,13 @@ helper get_packages => sub ($c, $module, $as_prefix) {
         owner => $owner,
       };
     }
-  }
-  ($_->{uploader}) = $_->{path} =~ m{^[^/]+/[^/]+/([a-z]+)}i for @$details;
-  return $details;
-};
-
-helper get_perms => sub ($c, $author, $module = '', $as_prefix = 0) {
-  return [] unless length $author or length $module;
-  my $perms = [];
-  if ($c->backend eq 'sqlite') {
-    my (@where, @params);
-    if (length $author) {
-      push @where, '"p"."userid" COLLATE NOCASE = ?';
-      push @params, $author;
-    }
-    if (length $module) {
-      if ($as_prefix) {
-        push @where, '"p"."package" LIKE ? ESCAPE ?';
-        push @params, ($module =~ s/[%_]/\\$1/gr) . '%', '\\';
-      } else {
-        push @where, '"p"."package" COLLATE NOCASE = ?';
-        push @params, $module;
-      }
-    }
-    my $where = join ' AND ', @where;
-    my $query = 'SELECT "p"."package" AS "module", "p"."userid" AS "author", "p"."best_permission",
-      (SELECT "userid" FROM "perms" WHERE "package" = "p"."package" AND "best_permission"=? ORDER BY "userid" COLLATE NOCASE LIMIT 1) AS "owner"
-      FROM "perms" AS "p" WHERE ' . $where . ' ORDER BY "p"."package" COLLATE NOCASE, "p"."userid" COLLATE NOCASE';
-    $perms = $c->sqlite->db->query($query, 'f', @params)->hashes;
-  } elsif ($c->backend eq 'pg') {
-    my (@where, @params);
-    if (length $author) {
-      push @where, 'lower("p"."userid") = lower(?)';
-      push @params, $author;
-    }
-    if (length $module) {
-      if ($as_prefix) {
-        push @where, 'lower("p"."package") LIKE lower(?)';
-        push @params, ($module =~ s/[%_]/\\$1/gr) . '%';
-      } else {
-        push @where, 'lower("p"."package") = lower(?)';
-        push @params, $module;
-      }
-    }
-    my $where = join ' AND ', @where;
-    my $query = 'SELECT "p"."package" AS "module", "p"."userid" AS "author", "p"."best_permission",
-      (SELECT "userid" FROM "perms" WHERE lower("package") = lower("p"."package") AND "best_permission"=? ORDER BY lower("userid") LIMIT 1) AS "owner"
-      FROM "perms" AS "p" WHERE ' . $where . ' ORDER BY lower("p"."package"), lower("p"."userid")';
-    $perms = $c->pg->db->query($query, 'f', @params)->hashes;
-  } elsif ($c->backend eq 'redis') {
+    ($_->{uploader}) = $_->{path} =~ m{^[^/]+/[^/]+/([a-z]+)}i for @$details;
+    return $details;
+  };
+  
+  helper get_perms => sub ($c, $author, $module = '', $as_prefix = 0) {
+    return [] unless length $author or length $module;
+    my $perms = [];
     my $redis = $c->redis;
     my @userid_packages;
     if (length $author) {
@@ -276,37 +338,11 @@ helper get_perms => sub ($c, $author, $module = '', $as_prefix = 0) {
         owner => $owner,
       };
     }
-  }
-  return $perms;
-};
-
-helper get_authors => sub ($c, $author, $as_prefix = 0) {
-  my $details = [];
-  if ($c->backend eq 'sqlite') {
-    my ($where, @params);
-    if ($as_prefix) {
-      $where = '"cpanid" LIKE ? ESCAPE ?';
-      @params = (($author =~ s/[%_]/\\$1/gr) . '%', '\\');
-    } else {
-      $where = '"cpanid" COLLATE NOCASE = ?';
-      @params = ($author);
-    }
-    my $query = 'SELECT "cpanid" AS "author", "fullname", "asciiname", "email", "homepage", "introduced", "has_cpandir"
-      FROM "authors" WHERE ' . $where . ' ORDER BY "cpanid" COLLATE NOCASE';
-    $details = $c->sqlite->db->query($query, @params)->hashes;
-  } elsif ($c->backend eq 'pg') {
-    my ($where, @params);
-    if ($as_prefix) {
-      $where = 'lower("cpanid") LIKE lower(?)';
-      @params = (($author =~ s/[%_]/\\$1/gr) . '%');
-    } else {
-      $where = 'lower("cpanid") = lower(?)';
-      @params = ($author);
-    }
-    my $query = 'SELECT "cpanid" AS "author", "fullname", "asciiname", "email", "homepage", "introduced", "has_cpandir"
-      FROM "authors" WHERE ' . $where . ' ORDER BY lower("cpanid")';
-    $details = $c->pg->db->query($query, @params)->hashes;
-  } elsif ($c->backend eq 'redis') {
+    return $perms;
+  };
+  
+  helper get_authors => sub ($c, $author, $as_prefix = 0) {
+    my $details = [];
     my $redis = $c->redis;
     my $cpanids_lc;
     my $start = lc $author;
@@ -329,22 +365,14 @@ helper get_authors => sub ($c, $author, $as_prefix = 0) {
         has_cpandir => $author{has_cpandir},
       };
     }
-  }
-  $_->{has_cpandir} = $_->{has_cpandir} ? true : false for @$details;
-  return $details;
-};
-
-helper get_refreshed => sub ($c, $type) {
-  if ($c->backend eq 'sqlite') {
-    my $query = q{SELECT strftime('%s',"last_updated") FROM "refreshed" WHERE "type" = ?};
-    return +($c->sqlite->db->query($query, $type)->arrays->first // [])->[0];
-  } elsif ($c->backend eq 'pg') {
-    my $query = 'SELECT extract(epoch from "last_updated") FROM "refreshed" WHERE "type" = ?';
-    return +($c->pg->db->query($query, $type)->arrays->first // [])->[0];
-  } elsif ($c->backend eq 'redis') {
+    $_->{has_cpandir} = $_->{has_cpandir} ? true : false for @$details;
+    return $details;
+  };
+  
+  helper get_refreshed => sub ($c, $type) {
     return $c->redis->hget('cpanmeta.refreshed', $type);
-  }
-};
+  };
+}
 
 app->start;
 
