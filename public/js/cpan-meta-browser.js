@@ -7,9 +7,9 @@ var search_data = {
   search_type: null,
   search_query: '',
   search_exact_match: false,
+  search_author: '',
   package_search_results: [],
-  module_perms_search_results: [],
-  author_perms_search_results: [],
+  perms_search_results: [],
   author_search_results: [],
   changing_hash: false,
   changing_search: false
@@ -22,10 +22,8 @@ var search_vm = new Vue({
       switch (search_data.search_type) {
         case 'packages':
           return search_vm.search_packages();
-        case 'module_perms':
-          return search_vm.search_module_perms();
-        case 'author_perms':
-          return search_vm.search_author_perms();
+        case 'perms':
+          return search_vm.search_perms();
         case 'authors':
           return search_vm.search_authors();
         default:
@@ -46,32 +44,20 @@ var search_vm = new Vue({
         .fail(function() {
         });
     },
-    search_module_perms: function() {
+    search_perms: function() {
       var query = search_data.search_query;
+      var author = search_data.search_author;
       var exact_match = search_data.search_exact_match;
-      if (query.length === 0 || (!exact_match && query.length === 1)) {
+      if ((query.length === 0 || (!exact_match && query.length === 1)) && author.length === 0) {
         return null;
       }
       search_vm.hash_from_search();
-      var res = $.getJSON('/api/v1/perms/by-module/' + encodeURIComponent(query), { as_prefix: exact_match ? 0 : 1 })
+      var res = $.getJSON('/api/v1/perms', { author: author, module: query, as_prefix: exact_match ? 0 : 1 })
         .done(function(data) {
-          search_data.module_perms_search_results = data;
+          search_data.perms_search_results = data;
         })
         .fail(function() {
         });
-    },
-    search_author_perms: function() {
-      var query = search_data.search_query;
-      if (query.length === 0) {
-        return null;
-      }
-      search_vm.hash_from_search();
-      var res = $.getJSON('/api/v1/perms/by-author/' + encodeURIComponent(query))
-        .done(function(data) {
-          search_data.author_perms_search_results = data;
-        })
-        .fail(function() {
-        })
     },
     search_authors: function() {
       var query = search_data.search_query;
@@ -130,7 +116,7 @@ var search_vm = new Vue({
     },
     hash_from_search: function() {
       if (!search_data.changing_search) {
-        var new_hash = (search_data.search_exact_match ? '=' : '~') + search_data.search_query;
+        var new_hash = search_data.search_author + (search_data.search_exact_match ? '=' : '~') + search_data.search_query;
         if ('#' + new_hash !== window.location.hash) {
           search_data.changing_hash = true;
           window.location.hash = new_hash;
@@ -140,17 +126,19 @@ var search_vm = new Vue({
     search_from_hash: function() {
       var hash = window.location.hash;
       if (hash != null && hash.length > 2 && hash.substring(0, 1) === '#') {
-        switch (hash.substring(1, 2)) {
-          case '=':
-            search_data.search_exact_match = true;
-            break;
-          case '~':
-            search_data.search_exact_match = false;
-            break;
-          default:
+        var delim_index = hash.indexOf('=', 1);
+        if (delim_index === -1) {
+          delim_index = hash.indexOf('~', 1);
+          if (delim_index === -1) {
             return null;
+          } else {
+            search_data.search_exact_match = false;
+          }
+        } else {
+          search_data.search_exact_match = true;
         }
-        search_data.search_query = hash.substring(2);
+        search_data.search_author = hash.substring(1, delim_index);
+        search_data.search_query = hash.substring(delim_index + 1);
       }
     }
   }

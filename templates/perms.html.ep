@@ -1,5 +1,7 @@
-% layout 'main', title => 'Module Permissions Search', search_type => 'module_perms';
+% layout 'main', title => 'Permissions Search', search_type => 'perms';
 <form class="form-inline" id="search-form" v-on:submit.prevent="do_search">
+  <label class="sr-only" for="search-author">Author PAUSE ID</label>
+  <input type="text" class="form-control mr-sm-2 mb-2 mb-sm-0" id="search-author" v-model="search_author" placeholder="Author PAUSE ID">
   <label class="sr-only" for="search-query">Module Name</label>
   <input type="text" class="form-control mr-sm-2 mb-2 mb-sm-0" id="search-query" v-model="search_query" placeholder="Module Name">
   <div class="form-check form-check-inline mr-sm-2 mb-2 mb-sm-0">
@@ -19,7 +21,7 @@
     </tr>
   </thead>
   <tbody>
-    <tr v-for="perm in module_perms_search_results">
+    <tr v-for="perm in perms_search_results">
       <td><a v-bind:href="module_url(perm.module)">{{ perm.module }}</a></td>
       <td><a v-bind:href="author_url(perm.author)">{{ perm.author }}</a></td>
       <td>{{ permission_string(perm.best_permission) }}</td>

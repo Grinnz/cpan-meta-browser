@@ -13,8 +13,7 @@
     <h2>CPAN Meta Browser</h2>
     <nav class="nav nav-tabs nav-justified" role="tablist">
       <a class="nav-item nav-link<% if (current_route 'packages' or current_route 'index') { %> active<% } %>" href="/packages">Module Index Search</a>
-      <a class="nav-item nav-link<% if (current_route 'module-perms') { %> active<% } %>" href="/module-perms">Module Permissions Search</a>
-      <a class="nav-item nav-link<% if (current_route 'author-perms') { %> active<% } %>" href="/author-perms">Author Permissions Search</a>
+      <a class="nav-item nav-link<% if (current_route 'perms') { %> active<% } %>" href="/perms">Permissions Search</a>
       <a class="nav-item nav-link<% if (current_route 'authors') { %> active<% } %>" href="/authors">Author Search</a>
     </nav>
     <br>

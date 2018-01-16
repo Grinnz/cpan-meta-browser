@@ -58,8 +58,9 @@ app->log->level($old_level);
 
 get '/' => sub ($c) { $c->render('packages') } => 'index';
 get '/packages';
-get '/module-perms' => 'module-perms';
-get '/author-perms' => 'author-perms';
+get '/perms';
+get '/module-perms' => sub ($c) { $c->redirect_to('perms') };
+get '/author-perms' => sub ($c) { $c->redirect_to('perms') };
 get '/authors';
 
 get '/api/v1/packages/:module' => sub ($c) {
