@@ -180,6 +180,57 @@ if ($backend eq 'sqlite') {
     my $query = q{SELECT strftime('%s',"last_updated") FROM "refreshed" WHERE "type" = ?};
     return +($c->sqlite->db->query($query, $type)->arrays->first // [])->[0];
   };
+  
+  helper existing_packages => sub ($c, $db) {
+    return $db->select('packages', ['package'])->arrays->map(sub { $_->[0] });
+  };
+  
+  helper update_package => sub ($c, $db, $data) {
+    my $current = $db->select('packages', '*', {package => $data->{package}})->hashes->first;
+    return 1 if _keys_equal($data, $current, [qw(version path)]);
+    my $query = 'INSERT OR REPLACE INTO "packages" ("package","version","path") VALUES (?,?,?)';
+    return $db->query($query, @$data{'package','version','path'});
+  };
+  
+  helper delete_package => sub ($c, $db, $package) {
+    return $db->delete('packages', {package => $package});
+  };
+  
+  helper existing_perms => sub ($c, $db) {
+    return $db->select('perms', ['userid','package'])->hashes;
+  };
+  
+  helper update_perms => sub ($c, $db, $data) {
+    my $current = $db->select('perms', '*', {package => $data->{package}, userid => $data->{userid}})->hashes->first;
+    return 1 if _keys_equal($data, $current, ['best_permission']);
+    my $query = 'INSERT OR REPLACE INTO "perms" ("package","userid","best_permission") VALUES (?,?,?)';
+    return $db->query($query, @$data{'package','userid','best_permission'});
+  };
+  
+  helper delete_perms => sub ($c, $db, $userid, $packages) {
+    return $db->delete('perms', {userid => $userid, package => {-in => $packages}});
+  };
+  
+  helper existing_authors => sub ($c, $db) {
+    return $db->select('authors', ['cpanid'])->arrays->map(sub { $_->[0] });
+  };
+  
+  helper update_author => sub ($c, $db, $data) {
+    my $current = $db->select('authors', '*', {cpanid => $data->{cpanid}})->hashes->first;
+    return 1 if _keys_equal($data, $current, [qw(fullname asciiname email homepage introduced has_cpandir)]);
+    my $query = 'INSERT OR REPLACE INTO "authors" ("cpanid","fullname","asciiname","email","homepage","introduced","has_cpandir") VALUES (?,?,?,?,?,?,?)';
+    return $db->query($query, @$data{'cpanid','fullname','asciiname','email','homepage','introduced','has_cpandir'});
+  };
+  
+  helper delete_author => sub ($c, $db, $cpanid) {
+    return $db->delete('authors', {cpanid => $cpanid});
+  };
+  
+  helper update_refreshed => sub ($c, $db, $type, $time) {
+    my $query = q{INSERT OR REPLACE INTO "refreshed" ("type","last_updated") VALUES (?,datetime(?, 'unixepoch'))};
+    return $db->query($query, $type, $time);
+  };
+
 } elsif ($backend eq 'pg') {
   helper get_packages => sub ($c, $module, $as_prefix) {
     my $details = [];
@@ -245,6 +296,61 @@ if ($backend eq 'sqlite') {
     my $query = 'SELECT extract(epoch from "last_updated") FROM "refreshed" WHERE "type" = ?';
     return +($c->pg->db->query($query, $type)->arrays->first // [])->[0];
   };
+  
+  helper existing_packages => sub ($c, $db) {
+    return $db->select('packages', ['package'])->arrays->map(sub { $_->[0] });
+  };
+  
+  helper update_package => sub ($c, $db, $data) {
+    my $current = $db->select('packages', '*', {package => $data->{package}})->hashes->first;
+    return 1 if _keys_equal($data, $current, [qw(version path)]);
+    my $query = 'INSERT INTO "packages" ("package","version","path") VALUES (?,?,?)
+      ON CONFLICT ("package") DO UPDATE SET "version" = EXCLUDED."version", "path" = EXCLUDED."path"';
+    return $db->query($query, @$data{'package','version','path'});
+  };
+  
+  helper delete_package => sub ($c, $db, $package) {
+    return $db->delete('packages', {package => $package});
+  };
+  
+  helper existing_perms => sub ($c, $db) {
+    return $db->select('perms', ['userid','package'])->hashes;
+  };
+  
+  helper update_perms => sub ($c, $db, $data) {
+    my $current = $db->select('perms', '*', {package => $data->{package}, userid => $data->{userid}})->hashes->first;
+    return 1 if _keys_equal($data, $current, ['best_permission']);
+    my $query = 'INSERT OR REPLACE INTO "perms" ("package","userid","best_permission") VALUES (?,?,?)';
+    return $db->query($query, @$data{'package','userid','best_permission'});
+  };
+  
+  helper delete_perms => sub ($c, $db, $userid, $packages) {
+    return $db->delete('perms', {userid => $userid, package => {-in => $packages}});
+  };
+  
+  helper existing_authors => sub ($c, $db) {
+    return $db->select('authors', ['cpanid'])->arrays->map(sub { $_->[0] });
+  };
+  
+  helper update_author => sub ($c, $db, $data) {
+    my $current = $db->select('authors', '*', {cpanid => $data->{cpanid}})->hashes->first;
+    return 1 if _keys_equal($data, $current, [qw(fullname asciiname email homepage introduced has_cpandir)]);
+    my $query = 'INSERT INTO "authors" ("cpanid","fullname","asciiname","email","homepage","introduced","has_cpandir") VALUES (?,?,?,?,?,?,?)
+      ON CONFLICT ("cpanid") DO UPDATE SET "fullname" = EXCLUDED."fullname", "asciiname" = EXCLUDED."asciiname", "email" = EXCLUDED."email",
+      "homepage" = EXCLUDED."homepage", "introduced" = EXCLUDED."introduced", "has_cpandir" = EXCLUDED."has_cpandir"';
+    return $db->query($query, @$data{'cpanid','fullname','asciiname','email','homepage','introduced','has_cpandir'});
+  };
+  
+  helper delete_author => sub ($c, $db, $cpanid) {
+    return $db->delete('authors', {cpanid => $cpanid});
+  };
+  
+  helper update_refreshed => sub ($c, $db, $type, $time) {
+    my $query = 'INSERT INTO "refreshed" ("type","last_updated") VALUES (?,to_timestamp(?))
+      ON CONFLICT ("type") DO UPDATE SET "last_updated" = EXCLUDED."last_updated"';
+    return $db->query($query, $type, $time);
+  };
+
 } elsif ($backend eq 'redis') {
   helper get_packages => sub ($c, $module, $as_prefix) {
     my $details = [];
@@ -364,6 +470,129 @@ if ($backend eq 'sqlite') {
   helper get_refreshed => sub ($c, $type) {
     return $c->redis->hget('cpanmeta.refreshed', $type);
   };
+  
+  helper existing_packages => sub ($c, $db) {
+    return $db->smembers('cpanmeta.packages');
+  };
+  
+  helper update_package => sub ($c, $db, $data) {
+    my $current = {@{$db->hgetall("cpanmeta.package.$data->{package}")}};
+    return 1 if _keys_equal($data, $current, [qw(version path)]);
+    my $tx = $db->multi;
+    $tx->sadd('cpanmeta.packages', $data->{package});
+    $tx->hmset("cpanmeta.package.$data->{package}", %$data);
+    my $package_lc = lc $data->{package};
+    $tx->hset('cpanmeta.packages_lc', $package_lc => $data->{package});
+    $tx->zadd('cpanmeta.packages_sorted', 0 => $package_lc);
+    $tx->exec;
+  };
+  
+  helper delete_package => sub ($c, $db, $package) {
+    my $tx = $db->multi;
+    $tx->srem('cpanmeta.packages', $package);
+    $tx->del("cpanmeta.package.$package");
+    my $package_lc = lc $package;
+    $tx->hdel('cpanmeta.packages_lc', $package_lc);
+    $tx->zrem('cpanmeta.packages_sorted', $package_lc);
+    $tx->exec;
+  };
+  
+  helper existing_perms => sub ($c, $db) {
+    return [map { +{userid => $_->[0], package => $_->[1]} } map { [split /\//, $_, 2] } @{$db->smembers('cpanmeta.perms')}];
+  };
+  
+  helper update_perms => sub ($c, $db, $data) {
+    my $current = {@{$db->hgetall("cpanmeta.perms.$data->{userid}/$data->{package}")}};
+    return 1 if _keys_equal($data, $current, ['best_permission']);
+    my $tx = $db->multi;
+    $tx->sadd('cpanmeta.perms', "$data->{userid}/$data->{package}");
+    $tx->hmset("cpanmeta.perms.$data->{userid}/$data->{package}", %$data);
+    $tx->hset('cpanmeta.package_owners', $data->{package} => $data->{userid}) if $data->{best_permission} eq 'f';
+    my $package_lc = lc $data->{package};
+    my $userid_lc = lc $data->{userid};
+    $tx->hset('cpanmeta.perms_packages_lc', $package_lc => $data->{package});
+    $tx->hset('cpanmeta.perms_userids_lc', $userid_lc => $data->{userid});
+    $tx->zadd('cpanmeta.perms_packages_sorted', 0 => $package_lc);
+    $tx->zadd('cpanmeta.perms_userids_sorted', 0 => $userid_lc);
+    $tx->zadd("cpanmeta.perms_userids_for_package.$data->{package}", 0 => $userid_lc);
+    $tx->zadd("cpanmeta.perms_packages_for_userid.$data->{userid}", 0 => $package_lc);
+    $tx->exec;
+  };
+  
+  helper delete_perms => sub ($c, $db, $userid, $packages) {
+    my $tx = $db->multi;
+    my $userid_lc = lc $userid;
+    $tx->zrem("cpanmeta.perms_userids_for_package.$_", $userid_lc) for @$packages;
+    $tx->zrem("cpanmeta.perms_packages_for_userid.$userid", map { lc } @$packages) if @$packages;
+    $tx->exec;
+    
+    $tx = $db->multi;
+    
+    foreach my $package (@$packages) {
+      $tx->srem('cpanmeta.perms', "$userid/$package");
+      
+      $tx->watch("cpanmeta.perms.$userid/$package");
+      if (($db->hget("cpanmeta.perms.$userid/$package", 'best_permission') // '') eq 'f') {
+        $tx->hdel('cpanmeta.package_owners', $package);
+      }
+      
+      $tx->del("cpanmeta.perms.$userid/$package");
+      
+      my $package_lc = lc $package;
+      $tx->watch("cpanmeta.perms_userids_for_package.$package");
+      unless ($db->zcard("cpanmeta.perms_userids_for_package.$package")) {
+        $tx->hdel('cpanmeta.perms_packages_lc', $package_lc);
+        $tx->zrem('cpanmeta.perms_packages_sorted', $package_lc);
+      }
+    }
+    
+    $tx->watch("cpanmeta.perms_packages_for_userid.$userid");
+    unless ($db->zcard("cpanmeta.perms_packages_for_userid.$userid")) {
+      $tx->hdel('cpanmeta.perms_userids_lc', $userid_lc);
+      $tx->zrem('cpanmeta.perms_userids_sorted', $userid_lc);
+    }
+    
+    $tx->exec;
+  };
+  
+  helper existing_authors => sub ($c, $db) {
+    return $db->smembers('cpanmeta.authors');
+  };
+  
+  helper update_author => sub ($c, $db, $data) {
+    my $current = {@{$db->hgetall("cpanmeta.author.$data->{cpanid}")}};
+    return 1 if _keys_equal($data, $current, [qw(fullname asciiname email homepage introduced has_cpandir)]);
+    my $tx = $db->multi;
+    $tx->sadd('cpanmeta.authors', $data->{cpanid});
+    $tx->hmset("cpanmeta.author.$data->{cpanid}", %$data);
+    my $cpanid_lc = lc $data->{cpanid};
+    $tx->hset('cpanmeta.cpanids_lc', $cpanid_lc => $data->{cpanid});
+    $tx->zadd('cpanmeta.cpanids_sorted', 0 => $cpanid_lc);
+    $tx->exec;
+  };
+  
+  helper delete_author => sub ($c, $db, $cpanid) {
+    my $tx = $db->multi;
+    $tx->srem('cpanmeta.authors', $cpanid);
+    $tx->del("cpanmeta.author.$cpanid");
+    my $cpanid_lc = lc $cpanid;
+    $tx->hdel('cpanmeta.cpanids_lc', $cpanid_lc);
+    $tx->zrem('cpanmeta.cpanids_sorted', $cpanid_lc);
+    $tx->exec;
+  };
+  
+  helper update_refreshed => sub ($c, $db, $type, $time) {
+    $db->hset('cpanmeta.refreshed', $type => $time);
+  };
+}
+
+sub _keys_equal ($first, $second, $keys) {
+  return 0 unless defined $first and defined $second;
+  foreach my $key (@$keys) {
+    next if !defined $first->{$key} and !defined $second->{$key};
+    return 0 unless defined $first->{$key} and defined $second->{$key} and $first->{$key} eq $second->{$key};
+  }
+  return 1;
 }
 
 app->start;
