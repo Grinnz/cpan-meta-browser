@@ -93,6 +93,14 @@ var search_vm = new Vue({
     author_url: function(author) {
       return 'https://metacpan.org/author/' + encodeURIComponent(author);
     },
+    author_homepage: function(url) {
+      var re = new RegExp('^(?:[a-z]+:)?//', 'i');
+      if (re.test(url)) {
+        return url;
+      } else {
+        return 'http://' + url;
+      }
+    },
     cpandir_url: function(path) {
       return 'https://cpan.metacpan.org/authors/id/' + encodeURI(path);
     },
