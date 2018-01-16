@@ -83,14 +83,6 @@ get '/api/v1/perms/by-author/:author' => sub ($c) {
   $c->render(json => $perms);
 };
 
-get '/api/v1/perms' => sub ($c) {
-  my $author = trim($c->param('author') // '');
-  my $module = trim($c->param('module') // '');
-  my $as_prefix = $c->param('as_prefix');
-  my $perms = $c->get_perms($author, $module, $as_prefix);
-  $c->render(json => $perms);
-};
-
 get '/api/v1/authors/:author' => sub ($c) {
   my $author = trim($c->param('author') // '');
   my $as_prefix = $c->param('as_prefix');
