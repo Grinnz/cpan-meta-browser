@@ -6,7 +6,7 @@
 var search_data = {
   search_type: null,
   search_query: '',
-  search_exact_match: false,
+  search_match_mode: 'prefix',
   search_author: '',
   package_search_results: [],
   package_data_refreshed: null,
@@ -35,12 +35,12 @@ var search_vm = new Vue({
     },
     search_packages: function() {
       var query = search_data.search_query;
-      var exact_match = search_data.search_exact_match;
-      if (query.length === 0 || (!exact_match && query.length === 1)) {
+      var as_prefix = search_data.search_match_mode === 'prefix';
+      if (query.length === 0 || (as_prefix && query.length === 1)) {
         return null;
       }
       search_vm.hash_from_search();
-      var res = $.getJSON('/api/v2/packages/' + encodeURIComponent(query), { as_prefix: exact_match ? 0 : 1 })
+      var res = $.getJSON('/api/v2/packages/' + encodeURIComponent(query), { as_prefix: as_prefix ? 1 : 0 })
         .done(function(data) {
           search_data.package_search_results = data.data;
           search_data.package_data_refreshed = data.last_updated;
@@ -51,12 +51,12 @@ var search_vm = new Vue({
     search_perms: function() {
       var query = search_data.search_query;
       var author = search_data.search_author;
-      var exact_match = search_data.search_exact_match;
-      if ((query.length === 0 || (!exact_match && query.length === 1)) && author.length === 0) {
+      var as_prefix = search_data.search_match_mode === 'prefix';
+      if ((query.length === 0 || (as_prefix && query.length === 1)) && author.length === 0) {
         return null;
       }
       search_vm.hash_from_search();
-      var res = $.getJSON('/api/v2/perms', { author: author, module: query, as_prefix: exact_match ? 0 : 1 })
+      var res = $.getJSON('/api/v2/perms', { author: author, module: query, as_prefix: as_prefix ? 1 : 0 })
         .done(function(data) {
           search_data.perms_search_results = data.data;
           search_data.perms_data_refreshed = data.last_updated;
@@ -66,12 +66,12 @@ var search_vm = new Vue({
     },
     search_authors: function() {
       var query = search_data.search_query;
-      var exact_match = search_data.search_exact_match;
-      if (query.length === 0 || (!exact_match && query.length === 1)) {
+      var as_prefix = search_data.search_match_mode === 'prefix';
+      if (query.length === 0 || (as_prefix && query.length === 1)) {
         return null;
       }
       search_vm.hash_from_search();
-      var res = $.getJSON('/api/v2/authors/' + encodeURIComponent(query), { as_prefix: exact_match ? 0 : 1 })
+      var res = $.getJSON('/api/v2/authors/' + encodeURIComponent(query), { as_prefix: as_prefix ? 1 : 0 })
         .done(function(data) {
           search_data.author_search_results = data.data;
           search_data.author_data_refreshed = data.last_updated;
@@ -125,7 +125,7 @@ var search_vm = new Vue({
     },
     hash_from_search: function() {
       if (!search_data.changing_search) {
-        var new_hash = search_data.search_author + (search_data.search_exact_match ? '=' : '~') + search_data.search_query;
+        var new_hash = search_data.search_author + (search_data.search_match_mode === 'prefix' ? '~' : '=') + search_data.search_query;
         if ('#' + new_hash !== window.location.hash) {
           search_data.changing_hash = true;
           window.location.hash = new_hash;
@@ -141,10 +141,10 @@ var search_vm = new Vue({
           if (delim_index === -1) {
             return null;
           } else {
-            search_data.search_exact_match = false;
+            search_data.search_match_mode = 'prefix';
           }
         } else {
-          search_data.search_exact_match = true;
+          search_data.search_match_mode = 'exact';
         }
         search_data.search_author = hash.substring(1, delim_index);
         search_data.search_query = hash.substring(delim_index + 1);
