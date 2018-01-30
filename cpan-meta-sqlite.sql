@@ -53,3 +53,15 @@ CREATE TABLE IF NOT EXISTS "refreshed" (
 
 --4 down
 DROP TABLE IF EXISTS "refreshed";
+
+--5 up
+CREATE INDEX "packages_package_idx" ON "packages" ("package" COLLATE NOCASE);
+DROP INDEX IF EXISTS "perms_userid_best_permission_idx";
+DROP INDEX IF EXISTS "perms_package_best_permission_idx";
+CREATE INDEX "perms_userid_best_permission_idx" ON "perms" ("userid" COLLATE NOCASE,"best_permission");
+CREATE INDEX "perms_package_best_permission_idx" ON "perms" ("package" COLLATE NOCASE,"best_permission");
+CREATE INDEX "authors_cpanid_idx" ON "authors" ("cpanid" COLLATE NOCASE);
+
+--5 down
+DROP INDEX IF EXISTS "packages_package_idx";
+DROP INDEX IF EXISTS "authors_cpanid_idx";
