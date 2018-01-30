@@ -37,7 +37,7 @@
   <tfoot v-if="author_data_refreshed">
     <tr>
       <td colspan="6">
-        <small>Data retrieved from <a href="https://cpan.metacpan.org/authors/00whois.xml">00whois.xml</a>
+        <small>{{ author_search_results.length }} result(s) retrieved from <a href="https://cpan.metacpan.org/authors/00whois.xml">00whois.xml</a>
         at {{ to_date_string(author_data_refreshed) }}</small>
       </td>
     </tr>

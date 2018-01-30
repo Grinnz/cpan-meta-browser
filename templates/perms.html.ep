@@ -35,7 +35,7 @@
   <tfoot v-if="perms_data_refreshed">
     <tr>
       <td colspan="4">
-        <small>Data retrieved from <a href="https://cpan.metacpan.org/modules/06perms.txt">06perms.txt</a>
+        <small>{{ perms_search_results.length }} result(s) retrieved from <a href="https://cpan.metacpan.org/modules/06perms.txt">06perms.txt</a>
         at {{ to_date_string(perms_data_refreshed) }}</small>
       </td>
     </tr>
