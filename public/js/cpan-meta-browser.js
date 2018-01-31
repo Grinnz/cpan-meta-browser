@@ -40,13 +40,16 @@ var search_vm = new Vue({
         return null;
       }
       search_vm.hash_from_search();
-      var res = $.getJSON('/api/v2/packages/' + encodeURIComponent(query), { as_prefix: as_prefix ? 1 : 0 })
-        .done(function(data) {
-          search_data.package_search_results = data.data;
-          search_data.package_data_refreshed = data.last_updated;
-        })
-        .fail(function() {
-        });
+      var packages_url = new URL('/api/v2/packages/' + encodeURIComponent(query), window.location.href);
+      packages_url.searchParams.set('as_prefix', as_prefix ? 1 : 0);
+      fetch(packages_url).then(function(response) {
+        return response.json();
+      }).then(function(data) {
+        search_data.package_search_results = data.data;
+        search_data.package_data_refreshed = data.last_updated;
+      }).catch(function(error) {
+        console.log('Error retrieving packages', error);
+      });
     },
     search_perms: function() {
       var query = search_data.search_query;
@@ -56,13 +59,18 @@ var search_vm = new Vue({
         return null;
       }
       search_vm.hash_from_search();
-      var res = $.getJSON('/api/v2/perms', { author: author, module: query, as_prefix: as_prefix ? 1 : 0 })
-        .done(function(data) {
-          search_data.perms_search_results = data.data;
-          search_data.perms_data_refreshed = data.last_updated;
-        })
-        .fail(function() {
-        });
+      var perms_url = new URL('/api/v2/perms', window.location.href);
+      perms_url.searchParams.set('author', author);
+      perms_url.searchParams.set('module', query);
+      perms_url.searchParams.set('as_prefix', as_prefix ? 1 : 0);
+      fetch(perms_url).then(function(response) {
+        return response.json();
+      }).then(function(data) {
+        search_data.perms_search_results = data.data;
+        search_data.perms_data_refreshed = data.last_updated;
+      }).catch(function(error) {
+        console.log('Error retrieving perms', error);
+      });
     },
     search_authors: function() {
       var query = search_data.search_query;
@@ -71,13 +79,16 @@ var search_vm = new Vue({
         return null;
       }
       search_vm.hash_from_search();
-      var res = $.getJSON('/api/v2/authors/' + encodeURIComponent(query), { as_prefix: as_prefix ? 1 : 0 })
-        .done(function(data) {
-          search_data.author_search_results = data.data;
-          search_data.author_data_refreshed = data.last_updated;
-        })
-        .fail(function() {
-        })
+      var authors_url = new URL('/api/v2/authors/' + encodeURIComponent(query), window.location.href);
+      authors_url.searchParams.set('as_prefix', as_prefix ? 1 : 0);
+      fetch(authors_url).then(function(response) {
+        return response.json();
+      }).then(function(data) {
+        search_data.author_search_results = data.data;
+        search_data.author_data_refreshed = data.last_updated;
+      }).catch(function(error) {
+        console.log('Error retrieving authors', error);
+      });
     },
     module_url: function(module) {
       return 'https://metacpan.org/pod/' + encodeURI(module);
@@ -170,13 +181,13 @@ var search_vm = new Vue({
   }
 });
 
-$(function() {
-  search_data.search_type = $('#search-type').val();
+window.onload = function() {
+  search_data.search_type = document.getElementById('search-type').getAttribute('value');
   search_vm.search_from_hash();
   search_data.changing_search = true;
   search_vm.do_search();
   search_data.changing_search = false;
-});
+};
 
 window.addEventListener('hashchange', function() {
   if (!search_data.changing_hash) {
