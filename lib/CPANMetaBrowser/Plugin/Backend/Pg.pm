@@ -23,7 +23,7 @@ sub register ($self, $app, $config) {
     my ($where, @params);
     if ($as_prefix) {
       $where = 'lower("p"."package") LIKE lower(?)';
-      @params = (($module =~ s/[%_]/\\$1/gr) . '%');
+      @params = (($module =~ s/([%_])/\\$1/gr) . '%');
     } else {
       $where = 'lower("p"."package") = lower(?)';
       @params = ($module);
@@ -63,7 +63,7 @@ sub register ($self, $app, $config) {
     if (length $module) {
       if ($as_prefix) {
         push @where, 'lower("p"."package") LIKE lower(?)';
-        push @params, ($module =~ s/[%_]/\\$1/gr) . '%';
+        push @params, ($module =~ s/([%_])/\\$1/gr) . '%';
       } else {
         push @where, 'lower("p"."package") = lower(?)';
         push @params, $module;
@@ -97,7 +97,7 @@ sub register ($self, $app, $config) {
     my ($where, @params);
     if ($as_prefix) {
       $where = 'lower("cpanid") LIKE lower(?)';
-      @params = (($author =~ s/[%_]/\\$1/gr) . '%');
+      @params = (($author =~ s/([%_])/\\$1/gr) . '%');
     } else {
       $where = 'lower("cpanid") = lower(?)';
       @params = ($author);

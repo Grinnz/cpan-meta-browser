@@ -23,7 +23,7 @@ sub register ($self, $app, $config) {
     my ($where, @params);
     if ($as_prefix) {
       $where = '"p"."package" LIKE ? ESCAPE ?';
-      @params = (($module =~ s/[%_]/\\$1/gr) . '%', '\\');
+      @params = (($module =~ s/([%_])/\\$1/gr) . '%', '\\');
     } else {
       $where = '"p"."package" COLLATE NOCASE = ?';
       @params = ($module);
@@ -62,7 +62,7 @@ sub register ($self, $app, $config) {
     if (length $module) {
       if ($as_prefix) {
         push @where, '"p"."package" LIKE ? ESCAPE ?';
-        push @params, ($module =~ s/[%_]/\\$1/gr) . '%', '\\';
+        push @params, ($module =~ s/([%_])/\\$1/gr) . '%', '\\';
       } else {
         push @where, '"p"."package" COLLATE NOCASE = ?';
         push @params, $module;
@@ -96,7 +96,7 @@ sub register ($self, $app, $config) {
     my ($where, @params);
     if ($as_prefix) {
       $where = '"cpanid" LIKE ? ESCAPE ?';
-      @params = (($author =~ s/[%_]/\\$1/gr) . '%', '\\');
+      @params = (($author =~ s/([%_])/\\$1/gr) . '%', '\\');
     } else {
       $where = '"cpanid" COLLATE NOCASE = ?';
       @params = ($author);
