@@ -20,6 +20,7 @@
       <th>Version</th>
       <th>Owner</th>
       <th>Uploader</th>
+      <th>Release</th>
       <th>Path</th>
     </tr>
   </thead>
@@ -29,6 +30,7 @@
       <td>{{ package.version }}</td>
       <td><a v-bind:href="author_url(package.owner)">{{ package.owner }}</a></td>
       <td><a v-bind:href="author_url(package.uploader)">{{ package.uploader }}</a></td>
+      <td><a v-bind:href="release_url(package.uploader, package.path)">{{ release_name(package.path) }}</a></td>
       <td><a v-bind:href="cpandir_url(package.path)">{{ package.path }}</a></td>
     </tr>
   </tbody>

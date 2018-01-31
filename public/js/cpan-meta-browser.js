@@ -96,6 +96,23 @@ var search_vm = new Vue({
     cpandir_url: function(path) {
       return 'https://cpan.metacpan.org/authors/id/' + encodeURI(path);
     },
+    release_name: function(path) {
+      var re = new RegExp('([^/]+)\.(tar\.(?:g?z|bz2)|zip|tgz)$', 'i'); // from CPAN::DistNameInfo
+      var matches = re.exec(path);
+      if (matches !== null) {
+        return matches[1];
+      } else {
+        return null;
+      }
+    },
+    release_url: function(uploader, path) {
+      var name = search_vm.release_name(path);
+      if (name !== null) {
+        return 'https://metacpan.org/release/' + encodeURIComponent(uploader) + '/' + encodeURIComponent(name);
+      } else {
+        return 'https://metacpan.org/author/' + encodeURIComponent(uploader) + '/releases';
+      }
+    },
     permission_string: function(perm) {
       switch (perm.toLowerCase()) {
         case 'm':
