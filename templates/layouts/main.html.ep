@@ -9,8 +9,10 @@
 </head>
 <body>
   <div class="container">
-    <p class="text-right"><a href="https://github.com/Grinnz/cpan-meta-browser">Source on GitHub</a></p>
-    <h2>CPAN Meta Browser</h2>
+    <div class="row justify-content-between mt-2">
+      <h2 class="col">CPAN Meta Browser</h2>
+      <a class="col text-right" href="https://github.com/Grinnz/cpan-meta-browser">Source on GitHub</a>
+    </div>
     <nav class="nav nav-tabs nav-justified" role="tablist">
       <a class="nav-item nav-link<% if (current_route 'packages') { %> active<% } %>" href="/packages">Module Index Search</a>
       <a class="nav-item nav-link<% if (current_route 'perms') { %> active<% } %>" href="/perms">Permissions Search</a>
