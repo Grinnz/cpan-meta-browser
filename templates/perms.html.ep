@@ -3,14 +3,18 @@
   <label class="sr-only" for="search-author">Author PAUSE ID</label>
   <input type="text" class="form-control mr-sm-2 mb-2 mb-sm-0" id="search-author" v-model="search_author" placeholder="Author PAUSE ID">
   <label class="sr-only" for="search-query">Module Name</label>
-  <input type="text" class="form-control mr-sm-2 mb-2 mb-sm-0" id="search-query" v-model="search_query" placeholder="Module Name">
-  <div class="form-check form-check-inline mr-sm-2 mb-2 mb-sm-0">
-    <input type="radio" class="form-check-input" id="search-prefix" value="prefix" v-model="search_match_mode">
-    <label class="form-check-label" for="search-prefix">Prefix (Module)</label>
-  </div>
-  <div class="form-check form-check-inline mr-sm-2 mb-2 mb-sm-0">
-    <input type="radio" class="form-check-input" id="search-exact-match" value="exact" v-model="search_match_mode">
-    <label class="form-check-label" for="search-exact-match">Exact Match</label>
+  <div class="input-group mr-sm-2 mb-2 mb-sm-0">
+    <input type="text" class="form-control" id="search-query" v-model="search_query" placeholder="Module Name">
+    <div class="input-group-append">
+      <div class="input-group-text">
+        <input type="radio" class="form-check-input" id="search-prefix" value="prefix" v-model="search_match_mode">
+        <label class="form-check-label" for="search-prefix">Prefix</label>
+      </div>
+      <div class="input-group-text">
+        <input type="radio" class="form-check-input" id="search-exact-match" value="exact" v-model="search_match_mode">
+        <label class="form-check-label" for="search-exact-match">Exact Match</label>
+      </div>
+    </div>
   </div>
   <button type="submit" class="btn btn-primary">Search</button>
 </form>
