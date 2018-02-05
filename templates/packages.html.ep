@@ -18,7 +18,7 @@
   <button type="submit" class="btn btn-primary mb-2">Search</button>
 </form>
 </div>
-<table class="table table-striped table-sm">
+<table v-if="package_search_results" class="table table-striped table-sm">
   <thead class="thead-light">
     <tr>
       <th>Module</th>
@@ -39,11 +39,11 @@
       <td><a v-bind:href="cpandir_url(package.path)">{{ package.path }}</a></td>
     </tr>
   </tbody>
-  <tfoot v-if="package_data_refreshed">
+  <tfoot>
     <tr>
       <td colspan="5">
-        <small>{{ package_search_results.length }} result(s) retrieved from <a href="https://cpan.metacpan.org/modules/02packages.details.txt">02packages.details.txt</a>
-        at {{ to_date_string(package_data_refreshed) }}</small>
+        <small>{{ package_search_results.length }} result(s) retrieved from <a href="https://cpan.metacpan.org/modules/02packages.details.txt">02packages.details.txt</a></small>
+        <small v-if="package_data_refreshed">at {{ to_date_string(package_data_refreshed) }}</small>
       </td>
     </tr>
   </tfoot>
