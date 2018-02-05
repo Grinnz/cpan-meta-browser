@@ -8,21 +8,20 @@
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
 </head>
 <body>
+  <nav class="navbar navbar-expand-md navbar-light bg-light justify-content-between mb-2">
+    <span class="navbar-brand">CPAN Meta Browser</span>
+    <a class="navbar-text text-right" href="https://github.com/Grinnz/cpan-meta-browser">Source on GitHub</a>
+  </nav>
   <div class="container">
-    <div class="row justify-content-between mt-2">
-      <h2 class="col">CPAN Meta Browser</h2>
-      <a class="col text-right" href="https://github.com/Grinnz/cpan-meta-browser">Source on GitHub</a>
-    </div>
-    <nav class="nav nav-tabs nav-justified" role="tablist">
+    <nav class="nav nav-tabs nav-justified mb-2" role="tablist">
       <a class="nav-item nav-link<% if (current_route 'packages') { %> active<% } %>" href="/packages">Module Index Search</a>
       <a class="nav-item nav-link<% if (current_route 'perms') { %> active<% } %>" href="/perms">Permissions Search</a>
       <a class="nav-item nav-link<% if (current_route 'authors') { %> active<% } %>" href="/authors">Author Search</a>
     </nav>
-    <br>
-    <div id="search-tab" class="tab-content">
-      <input type="hidden" id="search-type" value="<%= stash 'search_type' %>">
+  </div>
+  <div id="search-tab" class="tab-content">
+    <input type="hidden" id="search-type" value="<%= stash 'search_type' %>">
 %= content
-    </div>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.5.13/vue.min.js" integrity="sha256-1Q2q5hg2YXp9fYlM++sIEXOcUb8BRSDUsQ1zXvLBqmA=" crossorigin="anonymous"></script>
