@@ -35,7 +35,7 @@ var search_vm = new Vue({
     },
     search_packages: function() {
       var query = search_data.search_query;
-      var as_prefix = search_data.search_match_mode === 'prefix';
+      var as_prefix = search_data.search_match_mode !== 'exact';
       search_vm.hash_from_search();
       if (query.length === 0 || (as_prefix && query.length === 1)) {
         search_data.package_search_results = null;
@@ -56,7 +56,7 @@ var search_vm = new Vue({
     search_perms: function() {
       var query = search_data.search_query;
       var author = search_data.search_author;
-      var as_prefix = search_data.search_match_mode === 'prefix';
+      var as_prefix = search_data.search_match_mode !== 'exact';
       search_vm.hash_from_search();
       if ((query.length === 0 || (as_prefix && query.length === 1)) && author.length === 0) {
         search_data.perms_search_results = null;
@@ -78,7 +78,7 @@ var search_vm = new Vue({
     },
     search_authors: function() {
       var query = search_data.search_query;
-      var as_prefix = search_data.search_match_mode === 'prefix';
+      var as_prefix = search_data.search_match_mode !== 'exact';
       search_vm.hash_from_search();
       if (query.length === 0 || (as_prefix && query.length === 1)) {
         search_data.author_search_results = null;
