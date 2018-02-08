@@ -36,10 +36,12 @@ var search_vm = new Vue({
     search_packages: function() {
       var query = search_data.search_query;
       var as_prefix = search_data.search_match_mode === 'prefix';
+      search_vm.hash_from_search();
       if (query.length === 0 || (as_prefix && query.length === 1)) {
+        search_data.package_search_results = null;
+        search_data.package_data_refreshed = null;
         return null;
       }
-      search_vm.hash_from_search();
       var packages_url = new URL('/api/v2/packages/' + encodeURIComponent(query), window.location.href);
       packages_url.searchParams.set('as_prefix', as_prefix ? 1 : 0);
       fetch(packages_url).then(function(response) {
@@ -55,10 +57,12 @@ var search_vm = new Vue({
       var query = search_data.search_query;
       var author = search_data.search_author;
       var as_prefix = search_data.search_match_mode === 'prefix';
+      search_vm.hash_from_search();
       if ((query.length === 0 || (as_prefix && query.length === 1)) && author.length === 0) {
+        search_data.perms_search_results = null;
+        search_data.perms_data_refreshed = null;
         return null;
       }
-      search_vm.hash_from_search();
       var perms_url = new URL('/api/v2/perms', window.location.href);
       perms_url.searchParams.set('author', author);
       perms_url.searchParams.set('module', query);
@@ -75,10 +79,12 @@ var search_vm = new Vue({
     search_authors: function() {
       var query = search_data.search_query;
       var as_prefix = search_data.search_match_mode === 'prefix';
+      search_vm.hash_from_search();
       if (query.length === 0 || (as_prefix && query.length === 1)) {
+        search_data.author_search_results = null;
+        search_data.author_data_refreshed = null;
         return null;
       }
-      search_vm.hash_from_search();
       var authors_url = new URL('/api/v2/authors/' + encodeURIComponent(query), window.location.href);
       authors_url.searchParams.set('as_prefix', as_prefix ? 1 : 0);
       fetch(authors_url).then(function(response) {
@@ -162,7 +168,7 @@ var search_vm = new Vue({
     },
     search_from_hash: function() {
       var hash = window.location.hash;
-      if (hash != null && hash.length > 2 && hash.substring(0, 1) === '#') {
+      if (hash != null && hash.length > 1 && hash.substring(0, 1) === '#') {
         var delim_index = hash.indexOf('=', 1);
         if (delim_index === -1) {
           delim_index = hash.indexOf('~', 1);
