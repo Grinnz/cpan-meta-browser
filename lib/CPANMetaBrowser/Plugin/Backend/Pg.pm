@@ -90,7 +90,7 @@ sub register ($self, $app, $config) {
   });
   
   $app->helper(delete_perms => sub ($c, $db, $userid, $packages) {
-    return $db->delete('perms', {userid => $userid, package => {-in => $packages}});
+    return $db->delete('perms', {userid => $userid, package => \['= ANY (?)', $packages]});
   });
   
   $app->helper(get_authors => sub ($c, $author, $as_prefix = 0) {
