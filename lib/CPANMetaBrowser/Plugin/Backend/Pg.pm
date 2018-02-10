@@ -84,7 +84,8 @@ sub register ($self, $app, $config) {
   $app->helper(update_perms => sub ($c, $db, $data) {
     my $current = $db->select('perms', '*', {package => $data->{package}, userid => $data->{userid}})->hashes->first;
     return 1 if $c->_keys_equal($data, $current, ['best_permission']);
-    my $query = 'INSERT OR REPLACE INTO "perms" ("package","userid","best_permission") VALUES (?,?,?)';
+    my $query = 'INSERT INTO "perms" ("package","userid","best_permission") VALUES (?,?,?)
+      ON CONFLICT ("package","userid") DO UPDATE SET "best_permission" = EXCLUDED."best_permission"';
     return $db->query($query, @$data{'package','userid','best_permission'});
   });
   
