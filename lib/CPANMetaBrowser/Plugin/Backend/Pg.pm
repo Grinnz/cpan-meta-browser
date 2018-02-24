@@ -52,13 +52,18 @@ sub register ($self, $app, $config) {
     return $db->delete('packages', {package => $package});
   });
   
-  $app->helper(get_perms => sub ($c, $author, $module = '', $as_prefix = 0) {
+  $app->helper(get_perms => sub ($c, $author, $module = '', $as_prefix = 0, $other_permissions = 0) {
     return [] unless length $author or length $module;
     my $perms = [];
     my (@where, @params);
     if (length $author) {
-      push @where, 'lower("p"."userid") = lower(?)';
-      push @params, $author;
+      if ($other_permissions) {
+        push @where, '"p"."package" IN (SELECT "package" FROM "perms" WHERE lower("userid") = lower(?))';
+        push @params, $author;
+      } else {
+        push @where, 'lower("p"."userid") = lower(?)';
+        push @params, $author;
+      }
     }
     if (length $module) {
       if ($as_prefix) {

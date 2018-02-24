@@ -48,7 +48,7 @@ sub register ($self, $app, $config) {
   
   $app->helper(update_package => sub ($c, $db, $data) {
     my $current = {@{$db->hgetall("cpanmeta.package.$data->{package}")}};
-    return 1 if _keys_equal($data, $current, [qw(version path)]);
+    return 1 if $c->_keys_equal($data, $current, [qw(version path)]);
     my $tx = $db->multi;
     $tx->sadd('cpanmeta.packages', $data->{package});
     $tx->hmset("cpanmeta.package.$data->{package}", %$data);
@@ -68,7 +68,7 @@ sub register ($self, $app, $config) {
     $tx->exec;
   });
   
-  $app->helper(get_perms => sub ($c, $author, $module = '', $as_prefix = 0) {
+  $app->helper(get_perms => sub ($c, $author, $module = '', $as_prefix = 0, $other_permissions = 0) {
     return [] unless length $author or length $module;
     my $perms = [];
     my $redis = $c->redis;
@@ -92,7 +92,15 @@ sub register ($self, $app, $config) {
       foreach my $package_lc (@$packages_lc) {
         my $package = $redis->hget('cpanmeta.perms_packages_lc', $package_lc) // next;
         my $owner = $redis->hget('cpanmeta.package_owners', $package);
-        push @userid_packages, [$userid, $package, $owner];
+        if ($other_permissions) {
+          my $userids_lc = $redis->zrangebylex("cpanmeta.perms_userids_for_package.$package", '-', '+');
+          foreach my $userid_lc (@$userids_lc) {
+            my $userid = $redis->hget('cpanmeta.perms_userids_lc', $userid_lc) // next;
+            push @userid_packages, [$userid, $package, $owner];
+          }
+        } else {
+          push @userid_packages, [$userid, $package, $owner];
+        }
       }
     } else {
       my $packages_lc;
@@ -132,7 +140,7 @@ sub register ($self, $app, $config) {
   
   $app->helper(update_perms => sub ($c, $db, $data) {
     my $current = {@{$db->hgetall("cpanmeta.perms.$data->{userid}/$data->{package}")}};
-    return 1 if _keys_equal($data, $current, ['best_permission']);
+    return 1 if $c->_keys_equal($data, $current, ['best_permission']);
     my $tx = $db->multi;
     $tx->sadd('cpanmeta.perms', "$data->{userid}/$data->{package}");
     $tx->hmset("cpanmeta.perms.$data->{userid}/$data->{package}", %$data);
@@ -218,7 +226,7 @@ sub register ($self, $app, $config) {
   
   $app->helper(update_author => sub ($c, $db, $data) {
     my $current = {@{$db->hgetall("cpanmeta.author.$data->{cpanid}")}};
-    return 1 if _keys_equal($data, $current, [qw(fullname asciiname email homepage introduced has_cpandir)]);
+    return 1 if $c->_keys_equal($data, $current, [qw(fullname asciiname email homepage introduced has_cpandir)]);
     my $tx = $db->multi;
     $tx->sadd('cpanmeta.authors', $data->{cpanid});
     $tx->hmset("cpanmeta.author.$data->{cpanid}", %$data);
