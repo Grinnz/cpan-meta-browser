@@ -68,7 +68,7 @@ sub register ($self, $app, $config) {
     $tx->exec;
   });
   
-  $app->helper(get_perms => sub ($c, $author, $module = '', $as_prefix = 0, $other_permissions = 0) {
+  $app->helper(get_perms => sub ($c, $author, $module = '', $as_prefix = 0, $other_authors = 0) {
     return [] unless length $author or length $module;
     my $perms = [];
     my $redis = $c->redis;
@@ -92,7 +92,7 @@ sub register ($self, $app, $config) {
       foreach my $package_lc (@$packages_lc) {
         my $package = $redis->hget('cpanmeta.perms_packages_lc', $package_lc) // next;
         my $owner = $redis->hget('cpanmeta.package_owners', $package);
-        if ($other_permissions) {
+        if ($other_authors) {
           my $userids_lc = $redis->zrangebylex("cpanmeta.perms_userids_for_package.$package", '-', '+');
           foreach my $userid_lc (@$userids_lc) {
             my $userid = $redis->hget('cpanmeta.perms_userids_lc', $userid_lc) // next;

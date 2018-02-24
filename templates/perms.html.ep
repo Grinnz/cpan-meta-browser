@@ -2,7 +2,15 @@
 <div class="container">
 <form class="form-inline" id="search-form" v-on:submit.prevent="do_search">
   <label class="sr-only" for="search-author">Author PAUSE ID</label>
-  <input type="text" class="form-control mr-sm-2 mb-2" id="search-author" v-model="search_author" placeholder="Author PAUSE ID">
+  <div class="input-group mr-sm-2 mb-2">
+    <input type="text" class="form-control" id="search-author" v-model="search_author" placeholder="Author PAUSE ID">
+    <div class="input-group-append">
+      <div class="input-group-text">
+        <input type="checkbox" class="form-check-input" id="search-other-authors" v-model="search_other_authors">
+        <label class="form-check-label" for="search-other-authors">Include Others</label>
+      </div>
+    </div>
+  </div>
   <label class="sr-only" for="search-query">Module Name</label>
   <div class="input-group mr-sm-2 mb-2">
     <input type="text" class="form-control" id="search-query" v-model="search_query" placeholder="Module Name">

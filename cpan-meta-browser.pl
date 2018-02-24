@@ -99,8 +99,8 @@ get '/api/v2/perms' => sub ($c) {
   my $author = trim($c->param('author') // '');
   my $module = trim($c->param('module') // '');
   my $as_prefix = $c->param('as_prefix');
-  my $other_permissions = $c->param('other_permissions');
-  my $perms = $c->get_perms($author, $module, $as_prefix, $other_permissions);
+  my $other_authors = $c->param('other_authors');
+  my $perms = $c->get_perms($author, $module, $as_prefix, $other_authors);
   my $last_updated = $c->get_refreshed('perms');
   $c->render(json => {data => $perms, last_updated => $last_updated});
 };

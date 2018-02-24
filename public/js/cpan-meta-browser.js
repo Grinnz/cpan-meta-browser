@@ -8,6 +8,7 @@ var search_data = {
   search_query: '',
   search_match_mode: 'prefix',
   search_author: '',
+  search_other_authors: false,
   package_search_results: null,
   package_data_refreshed: null,
   perms_search_results: null,
@@ -66,6 +67,7 @@ var search_vm = new Vue({
         perms_url.searchParams.set('author', author);
         perms_url.searchParams.set('module', query);
         perms_url.searchParams.set('as_prefix', as_prefix ? 1 : 0);
+        perms_url.searchParams.set('other_authors', search_data.search_other_authors ? 1 : 0);
         fetch(perms_url).then(function(response) {
           return response.json();
         }).then(function(data) {
@@ -166,6 +168,9 @@ var search_vm = new Vue({
     hash_from_search: function() {
       if (!search_data.changing_search) {
         var separator = search_data.search_match_mode === 'exact' ? '=' : '~';
+        if (search_data.search_other_authors) {
+          separator = '+' + separator;
+        }
         var new_hash = search_data.search_author + separator + search_data.search_query;
         if ('#' + new_hash !== window.location.hash) {
           search_data.changing_hash = true;
@@ -186,7 +191,13 @@ var search_vm = new Vue({
           }
         }
         if (delim_index !== -1) {
-          search_data.search_author = hash.substring(1, delim_index);
+          if (delim_index > 0 && hash.substring(delim_index - 1, delim_index) === '+') {
+            search_data.search_author = hash.substring(1, delim_index - 1);
+            search_data.search_other_authors = true;
+          } else {
+            search_data.search_author = hash.substring(1, delim_index);
+            search_data.search_other_authors = false;
+          }
           search_data.search_query = hash.substring(delim_index + 1);
         }
       }
