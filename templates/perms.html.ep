@@ -1,9 +1,9 @@
 % layout 'main', title => 'Permissions Search', search_type => 'perms';
 <div class="container">
 <form class="form-inline" id="search-form" v-on:submit.prevent="do_search">
-  <label class="sr-only" for="search-author">Author PAUSE ID</label>
+  <label class="sr-only" for="search-author">User PAUSE ID</label>
   <div class="input-group mr-sm-2 mb-2">
-    <input type="text" class="form-control" id="search-author" v-model="search_author" placeholder="Author PAUSE ID">
+    <input type="text" class="form-control" id="search-author" v-model="search_author" placeholder="User PAUSE ID">
     <div class="input-group-append">
       <div class="input-group-text">
         <input type="checkbox" class="form-check-input" id="search-other-authors" v-model="search_other_authors">
@@ -33,7 +33,7 @@
   <thead class="thead-light">
     <tr>
       <th>Module</th>
-      <th>Author</th>
+      <th>User</th>
       <th>Permission</th>
       <th>Module Owner</th>
     </tr>
