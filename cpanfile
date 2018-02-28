@@ -1,12 +1,13 @@
 requires 'perl' => '5.020';
 requires 'experimental';
 requires 'lib::relative';
+requires 'Getopt::Long';
+requires 'HTTP::Tiny' => '0.039';
+requires 'IO::Socket::SSL';
+requires 'IO::Uncompress::Gunzip';
 requires 'Mojolicious' => '7.29';
 requires 'Mojolicious::Plugin::AccessLog';
 requires 'Mojo::JSON::MaybeXS';
 requires 'Mojo::SQLite' => '2.001';
-requires 'HTTP::Tiny' => '0.039';
-requires 'IO::Socket::SSL';
-requires 'IO::Uncompress::Gunzip';
 requires 'Syntax::Keyword::Try' => '0.04';
 requires 'Text::CSV_XS';
