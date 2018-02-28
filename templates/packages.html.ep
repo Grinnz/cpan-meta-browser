@@ -3,13 +3,13 @@
 <form class="form-inline" id="search-form" v-on:submit.prevent="do_search">
   <label class="sr-only" for="search-query">Module Name</label>
   <div class="input-group mr-sm-2 mb-2">
-    <input type="text" class="form-control" id="search-query" v-model="search_query" placeholder="Module Name">
+    <input type="text" class="form-control" id="search-query" v-model="search_query" placeholder="Module::Name">
     <div class="input-group-append">
-      <div class="input-group-text">
+      <div class="input-group-text" title="Include results for all module names starting with this prefix">
         <input type="radio" class="form-check-input" id="search-prefix" value="prefix" v-model="search_match_mode">
         <label class="form-check-label" for="search-prefix">Prefix</label>
       </div>
-      <div class="input-group-text">
+      <div class="input-group-text" title="Include results only for this exact module name">
         <input type="radio" class="form-check-input" id="search-exact-match" value="exact" v-model="search_match_mode">
         <label class="form-check-label" for="search-exact-match">Exact Match</label>
       </div>
