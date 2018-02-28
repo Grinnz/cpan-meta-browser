@@ -11,7 +11,7 @@ use Mojo::JSON qw(true false);
 use Mojo::Redis2;
 
 sub register ($self, $app, $config) {
-  my $redis_url = $app->config->{redis_url};
+  my $redis_url = $ENV{CPAN_META_BROWSER_REDIS_URL} // $app->config->{redis_url};
   my $redis = Mojo::Redis2->new(defined $redis_url ? (url => $redis_url) : ());
   
   $app->helper(redis => sub { $redis });

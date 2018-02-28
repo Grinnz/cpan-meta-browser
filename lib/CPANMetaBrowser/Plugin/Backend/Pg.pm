@@ -11,7 +11,7 @@ use Mojo::JSON qw(true false);
 use Mojo::Pg;
 
 sub register ($self, $app, $config) {
-  my $pg_url = $app->config->{pg_url} // die "'pg_url' required for pg backend\n";
+  my $pg_url = $ENV{CPAN_META_BROWSER_PG_URL} // $app->config->{pg_url} // die "'pg_url' config or 'CPAN_META_BROWSER_PG_URL' env required for pg backend\n";
   my $pg = Mojo::Pg->new($pg_url);
   my $migrations_path = $app->config->{migrations_path} // $app->home->child('cpan-meta-pg.sql');
   $pg->migrations->from_file($migrations_path)->migrate;

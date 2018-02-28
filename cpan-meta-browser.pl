@@ -25,7 +25,7 @@ helper 'httptiny' => sub { $httptiny //= HTTP::Tiny->new };
 my $cache_dir = app->home->child('cache')->make_path;
 helper 'cache_dir' => sub { $cache_dir };
 
-my $backend = app->config->{backend} // 'sqlite';
+my $backend = $ENV{CPAN_META_BROWSER_BACKEND} // app->config->{backend} // 'sqlite';
 if ($backend eq 'sqlite') {
   plugin 'Backend::SQLite';
 } elsif ($backend eq 'pg') {
