@@ -25,7 +25,7 @@
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.5.13/vue.min.js" integrity="sha256-1Q2q5hg2YXp9fYlM++sIEXOcUb8BRSDUsQ1zXvLBqmA=" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/promise-polyfill@7.0.2/dist/polyfill.min.js" integrity="sha256-GhojZsgFzpfviPbqpZUWX/mxW2SPWPqF+aItrKcamng=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/promise-polyfill@7.1.0/dist/polyfill.min.js" integrity="sha256-0GoNO3c+wysR0M132hrJ5fY7GfIEhrE/N4WwmvqQI7M=" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/url-polyfill@1.0.11/url-polyfill.min.js" integrity="sha256-0sYS8XDti4HJJJhXdEweZuW3V13l8xaf0NyZiaML8r4=" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/fetch/2.0.3/fetch.min.js" integrity="sha256-aB35laj7IZhLTx58xw/Gm1EKOoJJKZt6RY+bH1ReHxs=" crossorigin="anonymous"></script>
   <script src="/js/cpan-meta-browser.js"></script>

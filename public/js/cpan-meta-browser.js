@@ -45,7 +45,11 @@ var search_vm = new Vue({
         var packages_url = new URL('/api/v2/packages/' + encodeURIComponent(query), window.location.href);
         packages_url.searchParams.set('as_prefix', as_prefix ? 1 : 0);
         fetch(packages_url).then(function(response) {
-          return response.json();
+          if (response.ok) {
+            return response.json();
+          } else {
+            throw new Error(response.status + ' ' + response.statusText);
+          }
         }).then(function(data) {
           search_data.package_search_results = data.data;
           search_data.package_data_refreshed = data.last_updated;
@@ -69,7 +73,11 @@ var search_vm = new Vue({
         perms_url.searchParams.set('as_prefix', as_prefix ? 1 : 0);
         perms_url.searchParams.set('other_authors', search_data.search_other_authors ? 1 : 0);
         fetch(perms_url).then(function(response) {
-          return response.json();
+          if (response.ok) {
+            return response.json();
+          } else {
+            throw new Error(response.status + ' ' + response.statusText);
+          }
         }).then(function(data) {
           search_data.perms_search_results = data.data;
           search_data.perms_data_refreshed = data.last_updated;
@@ -89,7 +97,11 @@ var search_vm = new Vue({
         var authors_url = new URL('/api/v2/authors/' + encodeURIComponent(query), window.location.href);
         authors_url.searchParams.set('as_prefix', as_prefix ? 1 : 0);
         fetch(authors_url).then(function(response) {
-          return response.json();
+          if (response.ok) {
+            return response.json();
+          } else {
+            throw new Error(response.status + ' ' + response.statusText);
+          }
         }).then(function(data) {
           search_data.author_search_results = data.data;
           search_data.author_data_refreshed = data.last_updated;
