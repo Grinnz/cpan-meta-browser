@@ -18,12 +18,15 @@ sub register ($self, $app, $config) {
   
   $app->helper(pg => sub { $pg });
   
-  $app->helper(get_packages => sub ($c, $module, $as_prefix) {
+  $app->helper(get_packages => sub ($c, $module, $as_prefix = 0, $as_infix = 0) {
     my $details = [];
     my ($where, @params);
-    if ($as_prefix) {
+    if ($as_infix) {
       $where = 'lower("p"."package") LIKE lower(?)';
-      @params = (($module =~ s/([%_\\])/\\$1/gr) . '%');
+      @params = ('%' . $c->_sql_pattern_escape($module) . '%');
+    } elsif ($as_prefix) {
+      $where = 'lower("p"."package") LIKE lower(?)';
+      @params = ($c->_sql_pattern_escape($module) . '%');
     } else {
       $where = 'lower("p"."package") = lower(?)';
       @params = ($module);
@@ -52,7 +55,7 @@ sub register ($self, $app, $config) {
     return $db->delete('packages', {package => $package});
   });
   
-  $app->helper(get_perms => sub ($c, $author, $module = '', $as_prefix = 0, $other_authors = 0) {
+  $app->helper(get_perms => sub ($c, $author, $module = '', $as_prefix = 0, $as_infix = 0, $other_authors = 0) {
     return [] unless length $author or length $module;
     my $perms = [];
     my (@where, @params);
@@ -66,9 +69,12 @@ sub register ($self, $app, $config) {
       }
     }
     if (length $module) {
-      if ($as_prefix) {
+      if ($as_infix) {
         push @where, 'lower("p"."package") LIKE lower(?)';
-        push @params, ($module =~ s/([%_\\])/\\$1/gr) . '%';
+        push @params, '%' . $c->_sql_pattern_escape($module) . '%';
+      } elsif ($as_prefix) {
+        push @where, 'lower("p"."package") LIKE lower(?)';
+        push @params, $c->_sql_pattern_escape($module) . '%';
       } else {
         push @where, 'lower("p"."package") = lower(?)';
         push @params, $module;
@@ -98,12 +104,15 @@ sub register ($self, $app, $config) {
     return $db->delete('perms', {userid => $userid, package => \['= ANY (?)', $packages]});
   });
   
-  $app->helper(get_authors => sub ($c, $author, $as_prefix = 0) {
+  $app->helper(get_authors => sub ($c, $author, $as_prefix = 0, $as_infix = 0) {
     my $details = [];
     my ($where, @params);
-    if ($as_prefix) {
+    if ($as_infix) {
       $where = 'lower("cpanid") LIKE lower(?)';
-      @params = (($author =~ s/([%_\\])/\\$1/gr) . '%');
+      @params = ('%' . $c->_sql_pattern_escape($author) . '%');
+    } elsif ($as_prefix) {
+      $where = 'lower("cpanid") LIKE lower(?)';
+      @params = ($c->_sql_pattern_escape($author) . '%');
     } else {
       $where = 'lower("cpanid") = lower(?)';
       @params = ($author);

@@ -18,12 +18,15 @@ sub register ($self, $app, $config) {
   
   $app->helper(sqlite => sub { $sqlite });
   
-  $app->helper(get_packages => sub ($c, $module, $as_prefix) {
+  $app->helper(get_packages => sub ($c, $module, $as_prefix = 0, $as_infix = 0) {
     my $details = [];
     my ($where, @params);
-    if ($as_prefix) {
+    if ($as_infix) {
       $where = '"p"."package" LIKE ? ESCAPE ?';
-      @params = (($module =~ s/([%_\\])/\\$1/gr) . '%', '\\');
+      @params = ('%' . $c->_sql_pattern_escape($module) . '%', '\\');
+    } elsif ($as_prefix) {
+      $where = '"p"."package" LIKE ? ESCAPE ?';
+      @params = ($c->_sql_pattern_escape($module) . '%', '\\');
     } else {
       $where = '"p"."package" COLLATE NOCASE = ?';
       @params = ($module);
@@ -51,7 +54,7 @@ sub register ($self, $app, $config) {
     return $db->delete('packages', {package => $package});
   });
   
-  $app->helper(get_perms => sub ($c, $author, $module = '', $as_prefix = 0, $other_authors = 0) {
+  $app->helper(get_perms => sub ($c, $author, $module = '', $as_prefix = 0, $as_infix = 0, $other_authors = 0) {
     return [] unless length $author or length $module;
     my $perms = [];
     my (@where, @params);
@@ -65,9 +68,12 @@ sub register ($self, $app, $config) {
       }
     }
     if (length $module) {
-      if ($as_prefix) {
+      if ($as_infix) {
         push @where, '"p"."package" LIKE ? ESCAPE ?';
-        push @params, ($module =~ s/([%_\\])/\\$1/gr) . '%', '\\';
+        push @params, '%' . $c->_sql_pattern_escape($module) . '%', '\\';
+      } elsif ($as_prefix) {
+        push @where, '"p"."package" LIKE ? ESCAPE ?';
+        push @params, $c->_sql_pattern_escape($module) . '%', '\\';
       } else {
         push @where, '"p"."package" COLLATE NOCASE = ?';
         push @params, $module;
@@ -96,12 +102,15 @@ sub register ($self, $app, $config) {
     return $db->delete('perms', {userid => $userid, package => {-in => $packages}});
   });
   
-  $app->helper(get_authors => sub ($c, $author, $as_prefix = 0) {
+  $app->helper(get_authors => sub ($c, $author, $as_prefix = 0, $as_infix = 0) {
     my $details = [];
     my ($where, @params);
-    if ($as_prefix) {
+    if ($as_infix) {
       $where = '"cpanid" LIKE ? ESCAPE ?';
-      @params = (($author =~ s/([%_\\])/\\$1/gr) . '%', '\\');
+      @params = ('%' . $c->_sql_pattern_escape($author) . '%', '\\');
+    } elsif ($as_prefix) {
+      $where = '"cpanid" LIKE ? ESCAPE ?';
+      @params = ($c->_sql_pattern_escape($author) . '%', '\\');
     } else {
       $where = '"cpanid" COLLATE NOCASE = ?';
       @params = ($author);

@@ -47,6 +47,8 @@ helper _keys_equal => sub ($c, $first, $second, $keys) {
   return 1;
 };
 
+helper _sql_pattern_escape => sub ($c, $value) { $value =~ s/([%_\\])/\\$1/gr };
+
 my $access_log = app->config->{access_log} // 'log/access.log';
 my $old_level = app->log->level;
 app->log->level('error'); # hack around AccessLog's dumb warning
@@ -90,7 +92,8 @@ get '/api/v1/authors/:author' => sub ($c) {
 get '/api/v2/packages/:module' => sub ($c) {
   my $module = trim($c->param('module') // '');
   my $as_prefix = $c->param('as_prefix');
-  my $packages = $c->get_packages($module, $as_prefix);
+  my $as_infix = $c->param('as_infix');
+  my $packages = $c->get_packages($module, $as_prefix, $as_infix);
   my $last_updated = $c->get_refreshed('packages');
   $c->render(json => {data => $packages, last_updated => $last_updated});
 };
@@ -99,8 +102,9 @@ get '/api/v2/perms' => sub ($c) {
   my $author = trim($c->param('author') // '');
   my $module = trim($c->param('module') // '');
   my $as_prefix = $c->param('as_prefix');
+  my $as_infix = $c->params('as_infix');
   my $other_authors = $c->param('other_authors');
-  my $perms = $c->get_perms($author, $module, $as_prefix, $other_authors);
+  my $perms = $c->get_perms($author, $module, $as_prefix, $as_infix, $other_authors);
   my $last_updated = $c->get_refreshed('perms');
   $c->render(json => {data => $perms, last_updated => $last_updated});
 };
@@ -108,7 +112,8 @@ get '/api/v2/perms' => sub ($c) {
 get '/api/v2/authors/:author' => sub ($c) {
   my $author = trim($c->param('author') // '');
   my $as_prefix = $c->param('as_prefix');
-  my $authors = $c->get_authors($author, $as_prefix);
+  my $as_infix = $c->param('as_infix');
+  my $authors = $c->get_authors($author, $as_prefix, $as_infix);
   my $last_updated = $c->get_refreshed('authors');
   $c->render(json => {data => $authors, last_updated => $last_updated});
 };
