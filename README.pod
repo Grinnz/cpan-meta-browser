@@ -18,10 +18,12 @@ surrounding whitespace.
 
   GET /api/v2/packages/:module
   GET /api/v2/packages/:module?as_prefix=1
+  GET /api/v2/packages/:module?as_infix=1
 
 Retrieves details from the CPAN module index for the specified module name. If
 the C<as_prefix> option is enabled, details are returned for all module names
-starting with the specified prefix.
+starting with the specified prefix. If the C<as_infix> option is enabled,
+details are returned for all module names containing the specified infix.
 
   # GET /api/v2/packages/Moose
   {
@@ -70,12 +72,15 @@ starting with the specified prefix.
   GET /api/v2/perms?author=:author
   GET /api/v2/perms?module=:module
   GET /api/v2/perms?author=:author&module=:module&as_prefix=1&other_authors=1
+  GET /api/v2/perms?module=:module&as_infix=1
 
 Retrieves details from the CPAN permissions database for the specified author
 CPAN ID and/or module name. If the C<as_prefix> option is enabled, details are
 returned for all module names starting with the specified prefix. If the
-C<other_authors> option is enabled, details are returned for all authors with
-permissions for the matched modules, not just the specified author CPAN ID.
+C<as_infix> option is enabled, details are returned for all module names
+containing the specified infix. If the C<other_authors> option is enabled,
+details are returned for all authors with permissions for the matched modules,
+not just the specified author CPAN ID.
 
   # GET /api/v2/perms?author=LWWWP
   {
@@ -198,10 +203,13 @@ permissions for the matched modules, not just the specified author CPAN ID.
 
   GET /api/v2/authors/:author
   GET /api/v2/authors/:author?as_prefix=1
+  GET /api/v2/authors/:author?as_infix=1
 
 Retrieves details from the CPAN author database for the specified author CPAN
 ID. If the C<as_prefix> option is enabled, details are returned for all author
-CPAN IDs starting with the specified prefix.
+CPAN IDs starting with the specified prefix. If the C<as_infix> option is
+enabled, details are returned for all author CPAN IDs containing the specified
+infix.
 
   # GET /api/v2/authors/DBOOK
   {
