@@ -36,16 +36,15 @@ var search_vm = new Vue({
     },
     search_packages: function() {
       var query = search_data.search_query;
-      var as_prefix = search_data.search_match_mode === 'prefix';
-      var as_infix = search_data.search_match_mode === 'infix';
+      var mode = search_data.search_match_mode;
       search_vm.hash_from_search();
-      if (query.length === 0 || (as_prefix && query.length === 1)) {
+      if (query.length === 0 || (mode !== 'exact' && query.length === 1)) {
         search_data.package_search_results = null;
         search_data.package_data_refreshed = null;
       } else {
         var packages_url = new URL('/api/v2/packages/' + encodeURIComponent(query), window.location.href);
-        packages_url.searchParams.set('as_prefix', as_prefix ? 1 : 0);
-        packages_url.searchParams.set('as_infix', as_infix ? 1 : 0);
+        packages_url.searchParams.set('as_prefix', mode === 'prefix' ? 1 : 0);
+        packages_url.searchParams.set('as_infix', mode === 'infix' ? 1 : 0);
         fetch(packages_url).then(function(response) {
           if (response.ok) {
             return response.json();
@@ -63,18 +62,17 @@ var search_vm = new Vue({
     search_perms: function() {
       var query = search_data.search_query;
       var author = search_data.search_author;
-      var as_prefix = search_data.search_match_mode === 'prefix';
-      var as_infix = search_data.search_match_mode === 'infix';
+      var mode = search_data.search_match_mode;
       search_vm.hash_from_search();
-      if ((query.length === 0 || (as_prefix && query.length === 1)) && author.length === 0) {
+      if ((query.length === 0 || (mode !== 'exact' && query.length === 1)) && author.length === 0) {
         search_data.perms_search_results = null;
         search_data.perms_data_refreshed = null;
       } else {
         var perms_url = new URL('/api/v2/perms', window.location.href);
         perms_url.searchParams.set('author', author);
         perms_url.searchParams.set('module', query);
-        perms_url.searchParams.set('as_prefix', as_prefix ? 1 : 0);
-        perms_url.searchParams.set('as_infix', as_infix ? 1 : 0);
+        perms_url.searchParams.set('as_prefix', mode === 'prefix' ? 1 : 0);
+        perms_url.searchParams.set('as_infix', mode === 'infix' ? 1 : 0);
         perms_url.searchParams.set('other_authors', search_data.search_other_authors ? 1 : 0);
         fetch(perms_url).then(function(response) {
           if (response.ok) {
@@ -92,16 +90,15 @@ var search_vm = new Vue({
     },
     search_authors: function() {
       var query = search_data.search_query;
-      var as_prefix = search_data.search_match_mode === 'prefix';
-      var as_infix = search_data.search_match_mode === 'infix';
+      var mode = search_data.search_match_mode;
       search_vm.hash_from_search();
-      if (query.length === 0 || (as_prefix && query.length === 1)) {
+      if (query.length === 0 || (mode !== 'exact' && query.length === 1)) {
         search_data.author_search_results = null;
         search_data.author_data_refreshed = null;
       } else {
         var authors_url = new URL('/api/v2/authors/' + encodeURIComponent(query), window.location.href);
-        authors_url.searchParams.set('as_prefix', as_prefix ? 1 : 0);
-        authors_url.searchParams.set('as_infix', as_infix ? 1 : 0);
+        authors_url.searchParams.set('as_prefix', mode === 'prefix' ? 1 : 0);
+        authors_url.searchParams.set('as_infix', mode === 'infix' ? 1 : 0);
         fetch(authors_url).then(function(response) {
           if (response.ok) {
             return response.json();
