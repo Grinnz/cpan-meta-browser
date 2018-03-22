@@ -17,6 +17,7 @@ sub register ($self, $app, $config) {
   $app->helper(redis => sub { $redis });
   
   $app->helper(get_packages => sub ($c, $module, $as_prefix = 0, $as_infix = 0) {
+    return [] unless length $module;
     my $details = [];
     my $redis = $c->redis;
     my $packages_lc;
@@ -193,6 +194,7 @@ sub register ($self, $app, $config) {
   });
   
   $app->helper(get_authors => sub ($c, $author, $as_prefix = 0, $as_infix = 0) {
+    return [] unless length $author;
     my $details = [];
     my $redis = $c->redis;
     my $cpanids_lc;

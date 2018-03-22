@@ -19,6 +19,7 @@ sub register ($self, $app, $config) {
   $app->helper(sqlite => sub { $sqlite });
   
   $app->helper(get_packages => sub ($c, $module, $as_prefix = 0, $as_infix = 0) {
+    return [] unless length $module;
     my $details = [];
     my ($where, @params);
     if ($as_infix) {
@@ -103,6 +104,7 @@ sub register ($self, $app, $config) {
   });
   
   $app->helper(get_authors => sub ($c, $author, $as_prefix = 0, $as_infix = 0) {
+    return [] unless length $author;
     my $details = [];
     my ($where, @params);
     if ($as_infix) {
