@@ -19,6 +19,10 @@
         <input type="radio" class="form-check-input" id="search-prefix" value="prefix" v-model="search_match_mode">
         <label class="form-check-label" for="search-prefix">Prefix</label>
       </div>
+      <div class="input-group-text" title="Include results for all module names containing this infix">
+        <input type="radio" class="form-check-input" id="search-infix" value="infix" v-model="search_match_mode">
+        <label class="form-check-label" for="search-infix">Infix</label>
+      </div>
       <div class="input-group-text" title="Include results only for this exact module name">
         <input type="radio" class="form-check-input" id="search-exact-match" value="exact" v-model="search_match_mode">
         <label class="form-check-label" for="search-exact-match">Exact Match</label>
