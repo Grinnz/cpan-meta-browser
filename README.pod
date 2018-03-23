@@ -45,7 +45,7 @@ version 9.6, with the C<pg_trgm> extension. This is usually packaged in the
 C<-contrib> package for PostgreSQL and must be installed in the database that
 will be used:
 
-    CREATE EXTENSION pg_trim;
+  CREATE EXTENSION pg_trgm;
 
 C<pg_url> must also be set to a database connection URL in the form
 C<postgresql://user:password@host:port/database>.
