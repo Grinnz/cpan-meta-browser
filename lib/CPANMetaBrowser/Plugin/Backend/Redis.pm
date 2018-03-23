@@ -21,12 +21,15 @@ sub register ($self, $app, $config) {
     my $details = [];
     my $redis = $c->redis;
     my $packages_lc;
-    my $start = lc $module;
-    if ($as_prefix) {
+    if ($as_infix) {
+      $packages_lc = $redis->zrangebylex('cpanmeta.packages_sorted', '-', '+');
+      @$packages_lc = grep { m/\Q$module/i } @$packages_lc;
+    } elsif ($as_prefix) {
+      my $start = lc $module;
       my $end = $start =~ s/(.)\z/chr(ord($1)+1)/er;
       $packages_lc = $redis->zrangebylex('cpanmeta.packages_sorted', "[$start", "($end");
     } else {
-      $packages_lc = $redis->zrangebylex('cpanmeta.packages_sorted', "[$start", "[$start");
+      $packages_lc = $redis->zrangebylex('cpanmeta.packages_sorted', "[\L$module", "[\L$module");
     }
     foreach my $package_lc (@$packages_lc) {
       my $package = $redis->hget('cpanmeta.packages_lc', $package_lc) // next;
@@ -75,21 +78,24 @@ sub register ($self, $app, $config) {
     my $redis = $c->redis;
     my @userid_packages;
     if (length $author) {
-      my $start = lc $author;
-      my ($userid_lc) = @{$redis->zrangebylex('cpanmeta.perms_userids_sorted', "[$start", "[$start")};
+      my ($userid_lc) = @{$redis->zrangebylex('cpanmeta.perms_userids_sorted', "[\L$author", "[\L$author")};
       return [] unless defined $userid_lc;
       my $userid = $redis->hget('cpanmeta.perms_userids_lc', $userid_lc) // return [];
-      my @range = ('-', '+');
+      my $packages_lc;
       if (length $module) {
-        my $start = lc $module;
-        if ($as_prefix) {
+        if ($as_infix) {
+          $packages_lc = $redis->zrangebylex("cpanmeta.perms_packages_for_userid.$userid", '-', '+');
+          @$packages_lc = grep { m/\Q$module/i } @$packages_lc;
+        } elsif ($as_prefix) {
+          my $start = lc $module;
           my $end = $start =~ s/(.)\z/chr(ord($1)+1)/er;
-          @range = ("[$start", "($end");
+          $packages_lc = $redis->zrangebylex("cpanmeta.perms_packages_for_userid.$userid", "[$start", "($end");
         } else {
-          @range = ("[$start", "[$start");
+          $packages_lc = $redis->zrangebylex("cpanmeta.perms_packages_for_userid.$userid", "[\L$module", "[\L$module");
         }
+      } else {
+        $packages_lc = $redis->zrangebylex("cpanmeta.perms_packages_for_userid.$userid", '-', '+');
       }
-      my $packages_lc = $redis->zrangebylex("cpanmeta.perms_packages_for_userid.$userid", @range);
       foreach my $package_lc (@$packages_lc) {
         my $package = $redis->hget('cpanmeta.perms_packages_lc', $package_lc) // next;
         my $owner = $redis->hget('cpanmeta.package_owners', $package);
@@ -105,12 +111,15 @@ sub register ($self, $app, $config) {
       }
     } else {
       my $packages_lc;
-      my $start = lc $module;
-      if ($as_prefix) {
+      if ($as_infix) {
+        $packages_lc = $redis->zrangebylex('cpanmeta.perms_packages_sorted', '-', '+');
+        @$packages_lc = grep { m/\Q$module/i } @$packages_lc;
+      } elsif ($as_prefix) {
+        my $start = lc $module;
         my $end = $start =~ s/(.)\z/chr(ord($1)+1)/er;
         $packages_lc = $redis->zrangebylex('cpanmeta.perms_packages_sorted', "[$start", "($end");
       } else {
-        $packages_lc = $redis->zrangebylex('cpanmeta.perms_packages_sorted', "[$start", "[$start");
+        $packages_lc = $redis->zrangebylex('cpanmeta.perms_packages_sorted', "[\L$module", "[\L$module");
       }
       foreach my $package_lc (@$packages_lc) {
         my $package = $redis->hget('cpanmeta.perms_packages_lc', $package_lc) // next;
@@ -165,11 +174,15 @@ sub register ($self, $app, $config) {
     $tx->exec;
     
     $tx = $db->multi;
+    $tx->watch(
+      (map { "cpanmeta.perms.$userid/$_" } @$packages),
+      (map { "cpanmeta.perms_userids_for_package.$_" } @$packages),
+      "cpanmeta.perms_packages_for_userid.$userid",
+    );
     
     foreach my $package (@$packages) {
       $tx->srem('cpanmeta.perms', "$userid/$package");
       
-      $tx->watch("cpanmeta.perms.$userid/$package");
       if (($db->hget("cpanmeta.perms.$userid/$package", 'best_permission') // '') eq 'f') {
         $tx->hdel('cpanmeta.package_owners', $package);
       }
@@ -177,14 +190,12 @@ sub register ($self, $app, $config) {
       $tx->del("cpanmeta.perms.$userid/$package");
       
       my $package_lc = lc $package;
-      $tx->watch("cpanmeta.perms_userids_for_package.$package");
       unless ($db->zcard("cpanmeta.perms_userids_for_package.$package")) {
         $tx->hdel('cpanmeta.perms_packages_lc', $package_lc);
         $tx->zrem('cpanmeta.perms_packages_sorted', $package_lc);
       }
     }
     
-    $tx->watch("cpanmeta.perms_packages_for_userid.$userid");
     unless ($db->zcard("cpanmeta.perms_packages_for_userid.$userid")) {
       $tx->hdel('cpanmeta.perms_userids_lc', $userid_lc);
       $tx->zrem('cpanmeta.perms_userids_sorted', $userid_lc);
@@ -198,12 +209,15 @@ sub register ($self, $app, $config) {
     my $details = [];
     my $redis = $c->redis;
     my $cpanids_lc;
-    my $start = lc $author;
-    if ($as_prefix) {
+    if ($as_infix) {
+      $cpanids_lc = $redis->zrangebylex('cpanmeta.cpanids_sorted', '-', '+');
+      @$cpanids_lc = grep { m/\Q$author/i } @$cpanids_lc;
+    } elsif ($as_prefix) {
+      my $start = lc $author;
       my $end = $start =~ s/(.)\z/chr(ord($1)+1)/er;
       $cpanids_lc = $redis->zrangebylex('cpanmeta.cpanids_sorted', "[$start", "($end");
     } else {
-      $cpanids_lc = $redis->zrangebylex('cpanmeta.cpanids_sorted', "[$start", "[$start");
+      $cpanids_lc = $redis->zrangebylex('cpanmeta.cpanids_sorted', "[\L$author", "[\L$author");
     }
     foreach my $cpanid_lc (@$cpanids_lc) {
       my $cpanid = $redis->hget('cpanmeta.cpanids_lc', $cpanid_lc) // next;
