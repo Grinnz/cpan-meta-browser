@@ -1,0 +1,6 @@
+{
+  hypnotoad => { listen => ['http://*:8080'], proxy => 1 },
+  backend => 'pg',
+  pg_url => 'postgresql://cpan_meta:secret@/cpan_meta',
+  redis_url => 'redis://localhost:6379/5',
+}
