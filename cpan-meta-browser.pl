@@ -33,7 +33,7 @@ if ($backend eq 'sqlite') {
 } elsif ($backend eq 'redis') {
   plugin 'Backend::Redis';
 } else {
-  die "Unknown backend '$backend' (should be 'sqlite' or 'pg')\n";
+  die "Unknown backend '$backend' (should be 'sqlite', 'pg', or 'redis')\n";
 }
 
 helper backend => sub { $backend };
