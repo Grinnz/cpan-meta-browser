@@ -41,3 +41,9 @@ CREATE TABLE IF NOT EXISTS "refreshed" (
 
 --2 down
 DROP TABLE IF EXISTS "refreshed";
+
+--3 up
+CREATE INDEX IF NOT EXISTS "packages_package_trgm_idx" ON "packages" USING GIN (lower("package") gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS "perms_userid_trgm_idx" ON "perms" USING GIN (lower("userid") gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS "perms_package_trgm_idx" ON "perms" USING GIN (lower("package") gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS "authors_cpanid_trgm_idx" ON "authors" USING GIN (lower("cpanid") gin_trgm_ops);
