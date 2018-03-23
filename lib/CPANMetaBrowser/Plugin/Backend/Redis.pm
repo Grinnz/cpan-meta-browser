@@ -31,10 +31,14 @@ sub register ($self, $app, $config) {
     } else {
       $packages_lc = $redis->zrangebylex('cpanmeta.packages_sorted', "[\L$module", "[\L$module");
     }
+    my @package_names = @{$redis->hmget('cpanmeta.packages_lc', @$packages_lc)};
+    my %package_map = map { ($packages_lc->[$_] => $package_names[$_]) } 0..$#$packages_lc;
+    my @package_owners = @{$redis->hmget('cpanmeta.package_owners', @package_names)};
+    my %owner_map = map { ($package_names[$_] => $package_owners[$_]) } 0..$#package_names;
     foreach my $package_lc (@$packages_lc) {
-      my $package = $redis->hget('cpanmeta.packages_lc', $package_lc) // next;
+      my $package = $package_map{$package_lc} // next;
       my %package_details = @{$redis->hgetall("cpanmeta.package.$package")};
-      my $owner = $redis->hget('cpanmeta.package_owners', $package);
+      my $owner = $owner_map{$package};
       push @$details, {
         module => $package_details{package},
         version => $package_details{version},
@@ -96,15 +100,18 @@ sub register ($self, $app, $config) {
       } else {
         $packages_lc = $redis->zrangebylex("cpanmeta.perms_packages_for_userid.$userid", '-', '+');
       }
+      my @package_names = @{$redis->hmget('cpanmeta.perms_packages_lc', @$packages_lc)};
+      my %package_map = map { ($packages_lc->[$_] => $package_names[$_]) } 0..$#$packages_lc;
+      my @package_owners = @{$redis->hmget('cpanmeta.package_owners', @package_names)};
+      my %owner_map = map { ($package_names[$_] => $package_owners[$_]) } 0..$#package_names;
       foreach my $package_lc (@$packages_lc) {
-        my $package = $redis->hget('cpanmeta.perms_packages_lc', $package_lc) // next;
-        my $owner = $redis->hget('cpanmeta.package_owners', $package);
+        my $package = $package_map{$package_lc} // next;
+        my $owner = $owner_map{$package};
         if ($other_authors) {
           my $userids_lc = $redis->zrangebylex("cpanmeta.perms_userids_for_package.$package", '-', '+');
-          foreach my $userid_lc (@$userids_lc) {
-            my $userid = $redis->hget('cpanmeta.perms_userids_lc', $userid_lc) // next;
-            push @userid_packages, [$userid, $package, $owner];
-          }
+          my @userids = @{$redis->hmget('cpanmeta.perms_userids_lc', @$userids_lc)};
+          my %userid_map = map { ($userids_lc->[$_] => $userids[$_]) } 0..$#$userids_lc;
+          push @userid_packages, map { [$userid_map{$_}, $package, $owner] } grep { defined $userid_map{$_} } @$userids_lc;
         } else {
           push @userid_packages, [$userid, $package, $owner];
         }
@@ -121,14 +128,17 @@ sub register ($self, $app, $config) {
       } else {
         $packages_lc = $redis->zrangebylex('cpanmeta.perms_packages_sorted', "[\L$module", "[\L$module");
       }
+      my @package_names = @{$redis->hmget('cpanmeta.perms_packages_lc', @$packages_lc)};
+      my %package_map = map { ($packages_lc->[$_] => $package_names[$_]) } 0..$#$packages_lc;
+      my @package_owners = @{$redis->hmget('cpanmeta.package_owners', @package_names)};
+      my %owner_map = map { ($package_names[$_] => $package_owners[$_]) } 0..$#package_names;
       foreach my $package_lc (@$packages_lc) {
-        my $package = $redis->hget('cpanmeta.perms_packages_lc', $package_lc) // next;
-        my $owner = $redis->hget('cpanmeta.package_owners', $package);
+        my $package = $package_map{$package_lc} // next;
+        my $owner = $owner_map{$package};
         my $userids_lc = $redis->zrangebylex("cpanmeta.perms_userids_for_package.$package", '-', '+');
-        foreach my $userid_lc (@$userids_lc) {
-          my $userid = $redis->hget('cpanmeta.perms_userids_lc', $userid_lc) // next;
-          push @userid_packages, [$userid, $package, $owner];
-        }
+        my @userids = @{$redis->hmget('cpanmeta.perms_userids_lc', @$userids_lc)};
+        my %userid_map = map { ($userids_lc->[$_] => $userids[$_]) } 0..$#$userids_lc;
+        push @userid_packages, map { [$userid_map{$_}, $package, $owner] } grep { defined $userid_map{$_} } @$userids_lc;
       }
     }
     foreach my $userid_package (@userid_packages) {
@@ -219,8 +229,10 @@ sub register ($self, $app, $config) {
     } else {
       $cpanids_lc = $redis->zrangebylex('cpanmeta.cpanids_sorted', "[\L$author", "[\L$author");
     }
+    my @cpanids = @{$redis->hmget('cpanmeta.cpanids_lc', @$cpanids_lc)};
+    my %cpanid_map = map { ($cpanids_lc->[$_] => $cpanids[$_]) } 0..$#$cpanids_lc;
     foreach my $cpanid_lc (@$cpanids_lc) {
-      my $cpanid = $redis->hget('cpanmeta.cpanids_lc', $cpanid_lc) // next;
+      my $cpanid = $cpanid_map{$cpanid_lc} // next;
       my %author = @{$redis->hgetall("cpanmeta.author.$cpanid")};
       push @$details, {
         author => $author{cpanid},
