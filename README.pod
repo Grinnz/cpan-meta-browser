@@ -6,11 +6,58 @@
 
 CPAN Meta Browser
 
+=head1 DESCRIPTION
+
+CPAN Meta Browser is a two-part application for convenient access to metadata
+for CPAN (Comprehensive Perl Archive Network). The first part is a C<refresh>
+command which will download this metadata and index it into the selected
+backend database. The second part is a web application which provides search
+functionality into the indexed database.
+
+  /path/to/cpan-meta-browser.pl refresh
+  hypnotoad /path/to/cpan-meta-browser.pl
+
+=head1 INSTALLATION
+
+Perl dependencies are listed in F<cpanfile>. They can be installed by running:
+
+  cpanm --installdeps .
+
+=head1 CONFIGURATION
+
+CPAN Meta Browser is configured by the file F<cpan-meta-browser.conf> in the
+application home directory. The configuration file is a Perl hash. The
+C<hypnotoad> key will be used to configure
+L<Hypnotoad|Mojo::Server::Hypnotoad/SETTINGS> if it is used to start the web
+application.
+
+There are three backends available for CPAN Meta Browser. The backend can be
+set as C<backend> in the configuration file, or C<CPAN_META_BROWSER_BACKEND> in
+the environment.
+
+The default backend is C<sqlite> and requires L<Mojo::SQLite>. C<sqlite_path>
+may be set to a file path to store the database (must be in a writable
+directory, defaults to F<cpan-meta.sqlite> in the application home directory).
+
+The C<pg> backend requires L<Mojo::Pg> and a PostgreSQL server running at least
+version 9.6, with the C<pg_trgm> extension. This is usually packaged in the
+C<-contrib> package for PostgreSQL and must be installed in the database that
+will be used:
+
+    CREATE EXTENSION pg_trim;
+
+C<pg_url> must also be set to a database connection URL in the form
+C<postgresql://user:password@host:port/database>.
+
+The C<redis> backend requires L<Mojo::Redis2> and a Redis server running at least
+version 3.2.0. C<redis_url> may be set to a database connection URL in the form
+C<redis://x:auth@host:port/database> (defaults to C<redis://localhost:6379/0>).
+
 =head1 API
 
 In addition to the browser interface, CPAN Meta Browser provides an API to the
 contents of the files it indexes. The endpoints below are relative to the
-installation path, such as C<https://cpanmeta.grinnz.com/>. All endpoints
+installation path, such as L<https://cpanmeta.grinnz.com/>. All endpoints
 return JSON, and the module and author parameters are case insensitive and trim
 surrounding whitespace.
 
