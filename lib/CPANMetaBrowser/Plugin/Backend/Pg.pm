@@ -44,9 +44,9 @@ sub register ($self, $app, $config) {
   });
   
   $app->helper(update_package => sub ($c, $db, $data) {
-    my $current = $db->select('packages', '*', {package => $data->{package}})->hashes->first;
+    my $current = $db->select('packages', ['*'], {package => $data->{package}})->hashes->first;
     return 1 if $c->_keys_equal($data, $current, [qw(version path)]);
-    return $db->insert('packages', {%$data{qw(package version path)}},
+    $db->insert('packages', {%$data{qw(package version path)}},
       {on_conflict => ['package', {map {($_ => \qq{EXCLUDED."$_"})} qw(version path)}]});
   });
   
@@ -91,7 +91,7 @@ sub register ($self, $app, $config) {
   });
   
   $app->helper(update_perms => sub ($c, $db, $data) {
-    my $current = $db->select('perms', '*', {package => $data->{package}, userid => $data->{userid}})->hashes->first;
+    my $current = $db->select('perms', ['*'], {%$data{qw(package userid)}})->hashes->first;
     return 1 if $c->_keys_equal($data, $current, ['best_permission']);
     return $db->insert('perms', {%$data{qw(package userid best_permission)}},
       {on_conflict => \'("package","userid") DO UPDATE SET "best_permission"=EXCLUDED."best_permission"'});
@@ -126,7 +126,7 @@ sub register ($self, $app, $config) {
   });
   
   $app->helper(update_author => sub ($c, $db, $data) {
-    my $current = $db->select('authors', '*', {cpanid => $data->{cpanid}})->hashes->first;
+    my $current = $db->select('authors', ['*'], {cpanid => $data->{cpanid}})->hashes->first;
     return 1 if $c->_keys_equal($data, $current, [qw(fullname asciiname email homepage introduced has_cpandir)]);
     return $db->insert('authors', {%$data{qw(cpanid fullname asciiname email homepage introduced has_cpandir)}},
       {on_conflict => ['cpanid', {map {($_ => \qq{EXCLUDED."$_"})} qw(fullname asciiname email homepage introduced has_cpandir)}]});
@@ -142,7 +142,7 @@ sub register ($self, $app, $config) {
   });
   
   $app->helper(update_refreshed => sub ($c, $db, $type, $time) {
-    return $db->insert('refreshed', {type => $type, last_updated => \['to_timestamp', $time]},
+    return $db->insert('refreshed', {type => $type, last_updated => \['to_timestamp(?)', $time]},
       {on_conflict => ['type', {last_updated => \'EXCLUDED."last_updated"'}]});
   });
 }
