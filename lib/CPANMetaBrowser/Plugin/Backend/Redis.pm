@@ -11,10 +11,12 @@ use Mojo::JSON qw(to_json from_json true false);
 use Mojo::Redis2;
 
 sub register ($self, $app, $config) {
-  my $redis_url = $ENV{CPAN_META_BROWSER_REDIS_URL} // $app->config->{redis_url};
-  my $redis = Mojo::Redis2->new(defined $redis_url ? (url => $redis_url) : ());
-  
-  $app->helper(redis => sub { $redis });
+  {
+    my $redis_url = $ENV{CPAN_META_BROWSER_REDIS_URL} // $app->config->{redis_url};
+    my $redis = Mojo::Redis2->new(defined $redis_url ? (url => $redis_url) : ());
+    
+    $app->helper(redis => sub { $redis });
+  }
   
   $app->helper(get_packages => sub ($c, $module, $as_prefix = 0, $as_infix = 0) {
     return [] unless length $module;

@@ -11,12 +11,14 @@ use Mojo::JSON qw(true false);
 use Mojo::Pg 4.08;
 
 sub register ($self, $app, $config) {
-  my $pg_url = $ENV{CPAN_META_BROWSER_PG_URL} // $app->config->{pg_url} // die "'pg_url' config or 'CPAN_META_BROWSER_PG_URL' env required for pg backend\n";
-  my $pg = Mojo::Pg->new($pg_url);
-  my $migrations_path = $app->config->{migrations_path} // $app->home->child('cpan-meta-pg.sql');
-  $pg->migrations->from_file($migrations_path)->migrate;
-  
-  $app->helper(pg => sub { $pg });
+  {
+    my $pg_url = $ENV{CPAN_META_BROWSER_PG_URL} // $app->config->{pg_url} // die "'pg_url' config or 'CPAN_META_BROWSER_PG_URL' env required for pg backend\n";
+    my $pg = Mojo::Pg->new($pg_url);
+    my $migrations_path = $app->config->{migrations_path} // $app->home->child('cpan-meta-pg.sql');
+    $pg->migrations->from_file($migrations_path)->migrate;
+    
+    $app->helper(pg => sub { $pg });
+  }
   
   $app->helper(get_packages => sub ($c, $module, $as_prefix = 0, $as_infix = 0) {
     return [] unless length $module;

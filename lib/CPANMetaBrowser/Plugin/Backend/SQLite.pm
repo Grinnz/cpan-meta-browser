@@ -11,12 +11,14 @@ use Mojo::JSON qw(true false);
 use Mojo::SQLite 2.001;
 
 sub register ($self, $app, $config) {
-  my $sqlite_path = $ENV{CPAN_META_BROWSER_SQLITE_PATH} // $app->config->{sqlite_path} // $app->home->child('cpan-meta.sqlite');
-  my $sqlite = Mojo::SQLite->new->from_filename($sqlite_path);
-  my $migrations_path = $app->config->{migrations_path} // $app->home->child('cpan-meta-sqlite.sql');
-  $sqlite->migrations->from_file($migrations_path)->migrate;
-  
-  $app->helper(sqlite => sub { $sqlite });
+  {
+    my $sqlite_path = $ENV{CPAN_META_BROWSER_SQLITE_PATH} // $app->config->{sqlite_path} // $app->home->child('cpan-meta.sqlite');
+    my $sqlite = Mojo::SQLite->new->from_filename($sqlite_path);
+    my $migrations_path = $app->config->{migrations_path} // $app->home->child('cpan-meta-sqlite.sql');
+    $sqlite->migrations->from_file($migrations_path)->migrate;
+    
+    $app->helper(sqlite => sub { $sqlite });
+  }
   
   $app->helper(get_packages => sub ($c, $module, $as_prefix = 0, $as_infix = 0) {
     return [] unless length $module;
