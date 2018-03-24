@@ -20,7 +20,6 @@ sub register ($self, $app, $config) {
   
   $app->helper(get_packages => sub ($c, $module, $as_prefix = 0, $as_infix = 0) {
     return [] unless length $module;
-    my $details = [];
     my ($where, @params);
     if ($as_infix) {
       $where = 'lower("p"."package") LIKE lower(?)';
@@ -35,7 +34,7 @@ sub register ($self, $app, $config) {
     my $query = 'SELECT "p"."package" AS "module", "p"."version", "p"."path",
       (SELECT "userid" FROM "perms" WHERE lower("package") = lower("p"."package") AND "best_permission"=? ORDER BY lower("userid") LIMIT 1) AS "owner"
       FROM "packages" AS "p" WHERE ' . $where . ' ORDER BY lower("p"."package")';
-    $details = $c->pg->db->query($query, 'f', @params)->hashes;
+    my $details = $c->pg->db->query($query, 'f', @params)->hashes;
     ($_->{uploader}) = $_->{path} =~ m{^[^/]+/[^/]+/([a-z]+)}i for @$details;
     return $details;
   });
@@ -57,7 +56,6 @@ sub register ($self, $app, $config) {
   
   $app->helper(get_perms => sub ($c, $author, $module = '', $as_prefix = 0, $as_infix = 0, $other_authors = 0) {
     return [] unless length $author or length $module;
-    my $perms = [];
     my (@where, @params);
     if (length $author) {
       if ($other_authors) {
@@ -84,7 +82,7 @@ sub register ($self, $app, $config) {
     my $query = 'SELECT "p"."package" AS "module", "p"."userid" AS "author", "p"."best_permission",
       (SELECT "userid" FROM "perms" WHERE lower("package") = lower("p"."package") AND "best_permission"=? ORDER BY lower("userid") LIMIT 1) AS "owner"
       FROM "perms" AS "p" WHERE ' . $where . ' ORDER BY lower("p"."package"), lower("p"."userid")';
-    $perms = $c->pg->db->query($query, 'f', @params)->hashes;
+    my $perms = $c->pg->db->query($query, 'f', @params)->hashes;
     return $perms;
   });
   
@@ -105,7 +103,6 @@ sub register ($self, $app, $config) {
   
   $app->helper(get_authors => sub ($c, $author, $as_prefix = 0, $as_infix = 0) {
     return [] unless length $author;
-    my $details = [];
     my ($where, @params);
     if ($as_infix) {
       $where = 'lower("cpanid") LIKE lower(?)';
@@ -119,7 +116,7 @@ sub register ($self, $app, $config) {
     }
     my $query = 'SELECT "cpanid" AS "author", "fullname", "asciiname", "email", "homepage", "introduced", "has_cpandir"
       FROM "authors" WHERE ' . $where . ' ORDER BY lower("cpanid")';
-    $details = $c->pg->db->query($query, @params)->hashes;
+    my $details = $c->pg->db->query($query, @params)->hashes;
     $_->{has_cpandir} = $_->{has_cpandir} ? true : false for @$details;
     return $details;
   });

@@ -18,7 +18,6 @@ sub register ($self, $app, $config) {
   
   $app->helper(get_packages => sub ($c, $module, $as_prefix = 0, $as_infix = 0) {
     return [] unless length $module;
-    my $details = [];
     my $redis = $c->redis;
     my $packages_lc;
     if ($as_infix) {
@@ -35,6 +34,7 @@ sub register ($self, $app, $config) {
     my %package_map = map { ($packages_lc->[$_] => $package_names[$_]) } 0..$#$packages_lc;
     my @package_owners = @{$redis->hmget('cpanmeta.package_owners', @package_names)};
     my %owner_map = map { ($package_names[$_] => $package_owners[$_]) } 0..$#package_names;
+    my $details = [];
     foreach my $package_lc (@$packages_lc) {
       my $package = $package_map{$package_lc} // next;
       my %package_details = @{$redis->hgetall("cpanmeta.package.$package")};
@@ -78,7 +78,6 @@ sub register ($self, $app, $config) {
   
   $app->helper(get_perms => sub ($c, $author, $module = '', $as_prefix = 0, $as_infix = 0, $other_authors = 0) {
     return [] unless length $author or length $module;
-    my $perms = [];
     my $redis = $c->redis;
     my @userid_packages;
     if (length $author) {
@@ -141,6 +140,7 @@ sub register ($self, $app, $config) {
         push @userid_packages, map { [$userid_map{$_}, $package, $owner] } grep { defined $userid_map{$_} } @$userids_lc;
       }
     }
+    my $perms = [];
     foreach my $userid_package (@userid_packages) {
       my ($userid, $package, $owner) = @$userid_package;
       my %perms_details = @{$redis->hgetall("cpanmeta.perms.$userid/$package")};
@@ -216,7 +216,6 @@ sub register ($self, $app, $config) {
   
   $app->helper(get_authors => sub ($c, $author, $as_prefix = 0, $as_infix = 0) {
     return [] unless length $author;
-    my $details = [];
     my $redis = $c->redis;
     my $cpanids_lc;
     if ($as_infix) {
@@ -231,6 +230,7 @@ sub register ($self, $app, $config) {
     }
     my @cpanids = @{$redis->hmget('cpanmeta.cpanids_lc', @$cpanids_lc)};
     my %cpanid_map = map { ($cpanids_lc->[$_] => $cpanids[$_]) } 0..$#$cpanids_lc;
+    my $details = [];
     foreach my $cpanid_lc (@$cpanids_lc) {
       my $cpanid = $cpanid_map{$cpanid_lc} // next;
       my %author = @{$redis->hgetall("cpanmeta.author.$cpanid")};
