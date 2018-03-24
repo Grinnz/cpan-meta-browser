@@ -8,7 +8,7 @@ use 5.020;
 use Mojo::Base 'Mojolicious::Plugin';
 use experimental 'signatures';
 use Mojo::JSON qw(true false);
-use Mojo::SQLite;
+use Mojo::SQLite 2.001;
 
 sub register ($self, $app, $config) {
   my $sqlite_path = $ENV{CPAN_META_BROWSER_SQLITE_PATH} // $app->config->{sqlite_path} // $app->home->child('cpan-meta.sqlite');
@@ -140,8 +140,8 @@ sub register ($self, $app, $config) {
   });
   
   $app->helper(get_refreshed => sub ($c, $type) {
-    my $query = q{SELECT strftime('%s',"last_updated") FROM "refreshed" WHERE "type" = ?};
-    return +($c->sqlite->db->query($query, $type)->arrays->first // [])->[0];
+    my $refreshed = $c->sqlite->db->select('refreshed', [\q{strftime('%s',"last_updated")}], {type => $type});
+    return +($refreshed->arrays->first // [])->[0];
   });
   
   $app->helper(update_refreshed => sub ($c, $db, $type, $time) {

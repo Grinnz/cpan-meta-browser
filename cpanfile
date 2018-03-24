@@ -8,6 +8,5 @@ requires 'IO::Uncompress::Gunzip';
 requires 'Mojolicious' => '7.29';
 requires 'Mojolicious::Plugin::AccessLog';
 requires 'Mojo::JSON::MaybeXS';
-requires 'Mojo::SQLite' => '2.001';
 requires 'Syntax::Keyword::Try' => '0.04';
 requires 'Text::CSV_XS';
