@@ -8,7 +8,7 @@ use 5.020;
 use Mojo::Base 'Mojolicious::Plugin';
 use experimental 'signatures';
 use Mojo::JSON qw(true false);
-use Mojo::Pg;
+use Mojo::Pg 4.08;
 
 sub register ($self, $app, $config) {
   my $pg_url = $ENV{CPAN_META_BROWSER_PG_URL} // $app->config->{pg_url} // die "'pg_url' config or 'CPAN_META_BROWSER_PG_URL' env required for pg backend\n";
@@ -47,9 +47,8 @@ sub register ($self, $app, $config) {
   $app->helper(update_package => sub ($c, $db, $data) {
     my $current = $db->select('packages', '*', {package => $data->{package}})->hashes->first;
     return 1 if $c->_keys_equal($data, $current, [qw(version path)]);
-    my $query = 'INSERT INTO "packages" ("package","version","path") VALUES (?,?,?)
-      ON CONFLICT ("package") DO UPDATE SET "version" = EXCLUDED."version", "path" = EXCLUDED."path"';
-    return $db->query($query, @$data{'package','version','path'});
+    return $db->insert('packages', {%$data{qw(package version path)}},
+      {on_conflict => ['package', {map {($_ => \qq{EXCLUDED."$_"})} qw(version path)}]});
   });
   
   $app->helper(delete_package => sub ($c, $db, $package) {
@@ -96,9 +95,8 @@ sub register ($self, $app, $config) {
   $app->helper(update_perms => sub ($c, $db, $data) {
     my $current = $db->select('perms', '*', {package => $data->{package}, userid => $data->{userid}})->hashes->first;
     return 1 if $c->_keys_equal($data, $current, ['best_permission']);
-    my $query = 'INSERT INTO "perms" ("package","userid","best_permission") VALUES (?,?,?)
-      ON CONFLICT ("package","userid") DO UPDATE SET "best_permission" = EXCLUDED."best_permission"';
-    return $db->query($query, @$data{'package','userid','best_permission'});
+    return $db->insert('perms', {%$data{qw(package userid best_permission)}},
+      {on_conflict => \'("package","userid") DO UPDATE SET "best_permission"=EXCLUDED."best_permission"'});
   });
   
   $app->helper(delete_perms => sub ($c, $db, $userid, $packages) {
@@ -133,10 +131,8 @@ sub register ($self, $app, $config) {
   $app->helper(update_author => sub ($c, $db, $data) {
     my $current = $db->select('authors', '*', {cpanid => $data->{cpanid}})->hashes->first;
     return 1 if $c->_keys_equal($data, $current, [qw(fullname asciiname email homepage introduced has_cpandir)]);
-    my $query = 'INSERT INTO "authors" ("cpanid","fullname","asciiname","email","homepage","introduced","has_cpandir") VALUES (?,?,?,?,?,?,?)
-      ON CONFLICT ("cpanid") DO UPDATE SET "fullname" = EXCLUDED."fullname", "asciiname" = EXCLUDED."asciiname", "email" = EXCLUDED."email",
-      "homepage" = EXCLUDED."homepage", "introduced" = EXCLUDED."introduced", "has_cpandir" = EXCLUDED."has_cpandir"';
-    return $db->query($query, @$data{'cpanid','fullname','asciiname','email','homepage','introduced','has_cpandir'});
+    return $db->insert('authors', {%$data{qw(cpanid fullname asciiname email homepage introduced has_cpandir)}},
+      {on_conflict => ['cpanid', {map {($_ => \qq{EXCLUDED."$_"})} qw(fullname asciiname email homepage introduced has_cpandir)}]});
   });
   
   $app->helper(delete_author => sub ($c, $db, $cpanid) {
@@ -144,14 +140,13 @@ sub register ($self, $app, $config) {
   });
   
   $app->helper(get_refreshed => sub ($c, $type) {
-    my $query = 'SELECT extract(epoch from "last_updated") FROM "refreshed" WHERE "type" = ?';
-    return +($c->pg->db->query($query, $type)->arrays->first // [])->[0];
+    my $refreshed = $c->pg->db->select('refreshed', [\'extract(epoch from "last_updated")'], {type => $type});
+    return +($refreshed->arrays->first // [])->[0];
   });
   
   $app->helper(update_refreshed => sub ($c, $db, $type, $time) {
-    my $query = 'INSERT INTO "refreshed" ("type","last_updated") VALUES (?,to_timestamp(?))
-      ON CONFLICT ("type") DO UPDATE SET "last_updated" = EXCLUDED."last_updated"';
-    return $db->query($query, $type, $time);
+    return $db->insert('refreshed', {type => $type, last_updated => \['to_timestamp', $time]},
+      {on_conflict => ['type', {last_updated => \'EXCLUDED."last_updated"'}]});
   });
 }
 
