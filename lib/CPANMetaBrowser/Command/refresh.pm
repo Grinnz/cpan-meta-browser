@@ -113,6 +113,7 @@ sub prepare_06perms ($self) {
     my %perms_data = (package => $package, userid => $userid, best_permission => $best_permission);
     $self->app->update_perms($db, \%perms_data);
     delete $perms{$userid}{$package};
+    delete $perms{$userid} unless keys %{$perms{$userid}};
   }
   
   foreach my $userid (keys %perms) {
