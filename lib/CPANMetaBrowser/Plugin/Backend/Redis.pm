@@ -7,7 +7,7 @@ package CPANMetaBrowser::Plugin::Backend::Redis;
 use 5.020;
 use Mojo::Base 'Mojolicious::Plugin';
 use experimental 'signatures';
-use Mojo::JSON qw(true false);
+use Mojo::JSON qw(to_json from_json true false);
 use Mojo::Redis2;
 
 sub register ($self, $app, $config) {
@@ -34,15 +34,17 @@ sub register ($self, $app, $config) {
     my %package_map = map { ($packages_lc->[$_] => $package_names[$_]) } 0..$#$packages_lc;
     my @package_owners = @{$redis->hmget('cpanmeta.package_owners', @package_names)};
     my %owner_map = map { ($package_names[$_] => $package_owners[$_]) } 0..$#package_names;
+    my @package_details = @{$redis->hmget('cpanmeta.package_data', @package_names)};
+    my %details_map = map { ($package_names[$_] => $package_details[$_]) } 0..$#package_names;
     my $details = [];
     foreach my $package_lc (@$packages_lc) {
       my $package = $package_map{$package_lc} // next;
-      my %package_details = @{$redis->hgetall("cpanmeta.package.$package")};
+      my $package_details = from_json($details_map{$package} // 'null');
       my $owner = $owner_map{$package};
       push @$details, {
-        module => $package_details{package},
-        version => $package_details{version},
-        path => $package_details{path},
+        module => $package_details->{package},
+        version => $package_details->{version},
+        path => $package_details->{path},
         owner => $owner,
       };
     }
@@ -51,15 +53,14 @@ sub register ($self, $app, $config) {
   });
   
   $app->helper(existing_packages => sub ($c, $db) {
-    return $db->smembers('cpanmeta.packages');
+    return $db->hkeys('cpanmeta.package_data');
   });
   
   $app->helper(update_package => sub ($c, $db, $data) {
-    my $current = {@{$db->hgetall("cpanmeta.package.$data->{package}")}};
+    my $current = from_json($db->hget('cpanmeta.package_data', $data->{package}) // 'null');
     return 1 if $c->_keys_equal($data, $current, [qw(version path)]);
     my $tx = $db->multi;
-    $tx->sadd('cpanmeta.packages', $data->{package});
-    $tx->hmset("cpanmeta.package.$data->{package}", %$data);
+    $tx->hset('cpanmeta.package_data', $data->{package} => to_json $data);
     my $package_lc = lc $data->{package};
     $tx->hset('cpanmeta.packages_lc', $package_lc => $data->{package});
     $tx->zadd('cpanmeta.packages_sorted', 0 => $package_lc);
@@ -68,8 +69,7 @@ sub register ($self, $app, $config) {
   
   $app->helper(delete_package => sub ($c, $db, $package) {
     my $tx = $db->multi;
-    $tx->srem('cpanmeta.packages', $package);
-    $tx->del("cpanmeta.package.$package");
+    $tx->hdel('cpanmeta.package_data', $package);
     my $package_lc = lc $package;
     $tx->hdel('cpanmeta.packages_lc', $package_lc);
     $tx->zrem('cpanmeta.packages_sorted', $package_lc);
@@ -140,14 +140,17 @@ sub register ($self, $app, $config) {
         push @userid_packages, map { [$userid_map{$_}, $package, $owner] } grep { defined $userid_map{$_} } @$userids_lc;
       }
     }
+    my @perms_details = @{$redis->hmget('cpanmeta.perms_data', map { "$_->[0]/$_->[1]" } @userid_packages)};
+    my %details_map;
+    $details_map{$userid_packages[$_][0]}{$userid_packages[$_][1]} = $perms_details[$_] for 0..$#userid_packages;
     my $perms = [];
     foreach my $userid_package (@userid_packages) {
       my ($userid, $package, $owner) = @$userid_package;
-      my %perms_details = @{$redis->hgetall("cpanmeta.perms.$userid/$package")};
+      my $perms_details = from_json($details_map{$userid}{$package} // 'null');
       push @$perms, {
-        author => $perms_details{userid},
-        module => $perms_details{package},
-        best_permission => $perms_details{best_permission},
+        author => $perms_details->{userid},
+        module => $perms_details->{package},
+        best_permission => $perms_details->{best_permission},
         owner => $owner,
       };
     }
@@ -155,15 +158,14 @@ sub register ($self, $app, $config) {
   });
   
   $app->helper(existing_perms => sub ($c, $db) {
-    return [map { +{userid => $_->[0], package => $_->[1]} } map { [split /\//, $_, 2] } @{$db->smembers('cpanmeta.perms')}];
+    return [map { +{userid => $_->[0], package => $_->[1]} } map { [split /\//, $_, 2] } @{$db->hkeys('cpanmeta.perms_data')}];
   });
   
   $app->helper(update_perms => sub ($c, $db, $data) {
-    my $current = {@{$db->hgetall("cpanmeta.perms.$data->{userid}/$data->{package}")}};
+    my $current = from_json($db->hget('cpanmeta.perms_data', "$data->{userid}/$data->{package}") // 'null');
     return 1 if $c->_keys_equal($data, $current, ['best_permission']);
     my $tx = $db->multi;
-    $tx->sadd('cpanmeta.perms', "$data->{userid}/$data->{package}");
-    $tx->hmset("cpanmeta.perms.$data->{userid}/$data->{package}", %$data);
+    $tx->hset('cpanmeta.perms_data', "$data->{userid}/$data->{package}" => to_json $data);
     $tx->hset('cpanmeta.package_owners', $data->{package} => $data->{userid}) if $data->{best_permission} eq 'f';
     my $package_lc = lc $data->{package};
     my $userid_lc = lc $data->{userid};
@@ -185,19 +187,20 @@ sub register ($self, $app, $config) {
     
     $tx = $db->multi;
     $tx->watch(
-      (map { "cpanmeta.perms.$userid/$_" } @$packages),
+      'cpanmeta.perms_data',
       (map { "cpanmeta.perms_userids_for_package.$_" } @$packages),
       "cpanmeta.perms_packages_for_userid.$userid",
     );
     
+    my @perms_details = @{$redis->hmget('cpanmeta.perms_data', map { "$userid/$_" } @$packages)};
+    my %details_map = map { ($packages->[$_] => $perms_details[$_]) } 0..$#$packages;
     foreach my $package (@$packages) {
-      $tx->srem('cpanmeta.perms', "$userid/$package");
-      
-      if (($db->hget("cpanmeta.perms.$userid/$package", 'best_permission') // '') eq 'f') {
+      my $details = from_json($details_map{$package} // 'null');
+      if (($details->{best_permission} // '') eq 'f') {
         $tx->hdel('cpanmeta.package_owners', $package);
       }
       
-      $tx->del("cpanmeta.perms.$userid/$package");
+      $tx->hdel('cpanmeta.perms_data', "$userid/$package");
       
       my $package_lc = lc $package;
       unless ($db->zcard("cpanmeta.perms_userids_for_package.$package")) {
@@ -230,18 +233,20 @@ sub register ($self, $app, $config) {
     }
     my @cpanids = @{$redis->hmget('cpanmeta.cpanids_lc', @$cpanids_lc)};
     my %cpanid_map = map { ($cpanids_lc->[$_] => $cpanids[$_]) } 0..$#$cpanids_lc;
+    my @author_details = @{$redis->hmget('cpanmeta.author_data', @cpanids)};
+    my %details_map = map { ($cpanids[$_] => $author_details[$_]) } 0..$#cpanids;
     my $details = [];
     foreach my $cpanid_lc (@$cpanids_lc) {
       my $cpanid = $cpanid_map{$cpanid_lc} // next;
-      my %author = @{$redis->hgetall("cpanmeta.author.$cpanid")};
+      my $author = from_json($details_map{$cpanid} // 'null');
       push @$details, {
-        author => $author{cpanid},
-        fullname => $author{fullname},
-        asciiname => $author{asciiname},
-        email => $author{email},
-        homepage => $author{homepage},
-        introduced => $author{introduced},
-        has_cpandir => $author{has_cpandir},
+        author => $author->{cpanid},
+        fullname => $author->{fullname},
+        asciiname => $author->{asciiname},
+        email => $author->{email},
+        homepage => $author->{homepage},
+        introduced => $author->{introduced},
+        has_cpandir => $author->{has_cpandir},
       };
     }
     $_->{has_cpandir} = $_->{has_cpandir} ? true : false for @$details;
@@ -249,15 +254,14 @@ sub register ($self, $app, $config) {
   });
   
   $app->helper(existing_authors => sub ($c, $db) {
-    return $db->smembers('cpanmeta.authors');
+    return $db->hkeys('cpanmeta.author_data');
   });
   
   $app->helper(update_author => sub ($c, $db, $data) {
-    my $current = {@{$db->hgetall("cpanmeta.author.$data->{cpanid}")}};
+    my $current = from_json($db->hget('cpanmeta.author_data', $data->{cpanid}) // 'null');
     return 1 if $c->_keys_equal($data, $current, [qw(fullname asciiname email homepage introduced has_cpandir)]);
     my $tx = $db->multi;
-    $tx->sadd('cpanmeta.authors', $data->{cpanid});
-    $tx->hmset("cpanmeta.author.$data->{cpanid}", %$data);
+    $tx->hset('cpanmeta.author_data', $data->{cpanid} => to_json $data);
     my $cpanid_lc = lc $data->{cpanid};
     $tx->hset('cpanmeta.cpanids_lc', $cpanid_lc => $data->{cpanid});
     $tx->zadd('cpanmeta.cpanids_sorted', 0 => $cpanid_lc);
@@ -266,8 +270,7 @@ sub register ($self, $app, $config) {
   
   $app->helper(delete_author => sub ($c, $db, $cpanid) {
     my $tx = $db->multi;
-    $tx->srem('cpanmeta.authors', $cpanid);
-    $tx->del("cpanmeta.author.$cpanid");
+    $tx->hdel('cpanmeta.author_data', $cpanid);
     my $cpanid_lc = lc $cpanid;
     $tx->hdel('cpanmeta.cpanids_lc', $cpanid_lc);
     $tx->zrem('cpanmeta.cpanids_sorted', $cpanid_lc);
