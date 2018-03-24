@@ -46,7 +46,7 @@ sub register ($self, $app, $config) {
   $app->helper(update_package => sub ($c, $db, $data) {
     my $current = $db->select('packages', ['*'], {package => $data->{package}})->hashes->first;
     return 1 if $c->_keys_equal($data, $current, [qw(version path)]);
-    $db->insert('packages', {%$data{qw(package version path)}},
+    return $db->insert('packages', {%$data{qw(package version path)}},
       {on_conflict => ['package', {map {($_ => \qq{EXCLUDED."$_"})} qw(version path)}]});
   });
   
