@@ -148,6 +148,7 @@ var search_vm = new Vue({
       }
     },
     permission_string: function(perm) {
+      if (perm === null) { return ''; }
       switch (perm.toLowerCase()) {
         case 'm':
           return 'modulelist';
