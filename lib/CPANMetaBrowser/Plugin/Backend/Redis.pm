@@ -192,7 +192,7 @@ sub register ($self, $app, $config) {
       "cpanmeta.perms_packages_for_userid.$userid",
     );
     
-    my @perms_details = @{$redis->hmget('cpanmeta.perms_data', map { "$userid/$_" } @$packages)};
+    my @perms_details = @{$db->hmget('cpanmeta.perms_data', map { "$userid/$_" } @$packages)};
     my %details_map = map { ($packages->[$_] => $perms_details[$_]) } 0..$#$packages;
     foreach my $package (@$packages) {
       my $details = from_json($details_map{$package} // 'null');
