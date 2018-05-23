@@ -198,6 +198,9 @@ var search_vm = new Vue({
     search_from_hash: function() {
       var hash = window.location.hash;
       if (hash != null && hash.length > 1 && hash.substring(0, 1) === '#') {
+        if (hash.indexOf('%', 1) !== -1) {
+          hash = decodeURI(hash);
+        }
         var delim_index = hash.indexOf('=', 1);
         if (delim_index !== -1) {
           search_data.search_match_mode = 'exact';
