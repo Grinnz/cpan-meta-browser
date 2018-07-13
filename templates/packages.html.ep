@@ -46,7 +46,7 @@
   </tbody>
   <tfoot>
     <tr>
-      <td colspan="5">
+      <td colspan="6">
         <small>{{ package_search_results.length }} result(s) retrieved from <a href="https://cpan.metacpan.org/modules/02packages.details.txt">02packages.details.txt</a></small>
         <small v-if="package_data_refreshed">at {{ to_date_string(package_data_refreshed) }}</small>
       </td>
