@@ -14,8 +14,7 @@ sub register ($self, $app, $config) {
   {
     my $pg_url = $ENV{CPAN_META_BROWSER_PG_URL} // $app->config->{pg_url} // die "'pg_url' config or 'CPAN_META_BROWSER_PG_URL' env required for pg backend\n";
     my $pg = Mojo::Pg->new($pg_url);
-    my $migrations_path = $app->config->{migrations_path} // $app->home->child('cpan-meta-pg.sql');
-    $pg->migrations->from_file($migrations_path)->migrate;
+    $pg->migrations->from_data->migrate;
     
     $app->helper(pg => sub { $pg });
   }
@@ -150,3 +149,55 @@ sub register ($self, $app, $config) {
 }
 
 1;
+
+__DATA__
+@@ migrations
+-- 1 up
+CREATE TABLE IF NOT EXISTS "packages" (
+  "package" CHARACTER VARYING NOT NULL PRIMARY KEY,
+  "version" CHARACTER VARYING NULL,
+  "path" CHARACTER VARYING NOT NULL
+);
+CREATE INDEX IF NOT EXISTS "packages_package_idx" ON "packages" (lower("package") text_pattern_ops);
+
+CREATE TYPE "cpan_permission" AS ENUM ('m','f','a','c');
+CREATE TABLE IF NOT EXISTS "perms" (
+  "package" CHARACTER VARYING NOT NULL,
+  "userid" CHARACTER VARYING NOT NULL,
+  "best_permission" cpan_permission NOT NULL,
+  PRIMARY KEY ("package","userid")
+);
+CREATE INDEX IF NOT EXISTS "perms_userid_best_permission_idx" ON "perms" (lower("userid") text_pattern_ops,"best_permission");
+CREATE INDEX IF NOT EXISTS "perms_package_best_permission_idx" ON "perms" (lower("package") text_pattern_ops,"best_permission");
+
+CREATE TABLE IF NOT EXISTS "authors" (
+  "cpanid" CHARACTER VARYING NOT NULL PRIMARY KEY,
+  "fullname" CHARACTER VARYING NULL,
+  "asciiname" CHARACTER VARYING NULL,
+  "email" CHARACTER VARYING NULL,
+  "homepage" CHARACTER VARYING NULL,
+  "introduced" BIGINT NULL,
+  "has_cpandir" BOOLEAN NULL
+);
+CREATE INDEX IF NOT EXISTS "authors_cpanid_idx" ON "authors" (lower("cpanid") text_pattern_ops);
+
+-- 1 down
+DROP TABLE IF EXISTS "packages";
+DROP TABLE IF EXISTS "perms";
+DROP TABLE IF EXISTS "authors";
+DROP TYPE IF EXISTS "cpan_permission";
+
+--2 up
+CREATE TABLE IF NOT EXISTS "refreshed" (
+  "type" CHARACTER VARYING NOT NULL PRIMARY KEY,
+  "last_updated" TIMESTAMP WITH TIME ZONE NOT NULL
+);
+
+--2 down
+DROP TABLE IF EXISTS "refreshed";
+
+--3 up
+CREATE INDEX IF NOT EXISTS "packages_package_trgm_idx" ON "packages" USING GIN (lower("package") gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS "perms_userid_trgm_idx" ON "perms" USING GIN (lower("userid") gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS "perms_package_trgm_idx" ON "perms" USING GIN (lower("package") gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS "authors_cpanid_trgm_idx" ON "authors" USING GIN (lower("cpanid") gin_trgm_ops);
