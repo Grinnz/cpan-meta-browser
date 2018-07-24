@@ -159,7 +159,7 @@ sub _backend_db ($self) {
   my $backend = $self->app->backend;
   return $self->app->sqlite->db if $backend eq 'sqlite';
   return $self->app->pg->db if $backend eq 'pg';
-  return $self->app->redis if $backend eq 'redis';
+  return $self->app->redis->db if $backend eq 'redis';
   die "Unknown application backend $backend\n";
 }
 

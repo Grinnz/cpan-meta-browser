@@ -50,7 +50,7 @@ will be used:
 C<pg_url> must also be set to a database connection URL in the form
 C<postgresql://user:password@host:port/database>.
 
-The C<redis> backend requires L<Mojo::Redis2> and a Redis server running at least
+The C<redis> backend requires L<Mojo::Redis> and a Redis server running at least
 version 3.2.0. C<redis_url> may be set to a database connection URL in the form
 C<redis://x:auth@host:port/database> (defaults to C<redis://localhost:6379/0>).
 
