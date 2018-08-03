@@ -55,7 +55,7 @@ app->log->level('error'); # hack around AccessLog's dumb warning
 plugin 'AccessLog' => {log => $access_log} if $access_log;
 app->log->level($old_level);
 
-get '/' => sub ($c) { $c->redirect_to('packages') } => 'index';
+get '/' => sub ($c) { $c->res->code(301); $c->redirect_to('packages') } => 'index';
 get '/packages';
 get '/perms';
 get '/module-perms' => sub ($c) { $c->res->code(301); $c->redirect_to('perms') };
