@@ -67,11 +67,14 @@ surrounding whitespace.
   GET /api/v2/packages/:module
   GET /api/v2/packages/:module?as_prefix=1
   GET /api/v2/packages/:module?as_infix=1
+  GET /api/v2/packages?module=:module&module=:module
 
 Retrieves details from the CPAN module index for the specified module name. If
 the C<as_prefix> option is enabled, details are returned for all module names
 starting with the specified prefix. If the C<as_infix> option is enabled,
 details are returned for all module names containing the specified infix.
+Multiple module names may be specified as query parameters, but this will
+disable prefix/infix matching.
 
   # GET /api/v2/packages/Moose
   {
@@ -114,6 +117,28 @@ details are returned for all module names containing the specified infix.
      ],
      "last_updated" : "1519669561"
   }
+
+  # GET /api/v2/packages?module=LWP&module=Mojo
+  {
+    "data": [
+      {
+        "module": "LWP",
+        "owner": "OALDERS",
+        "path": "O/OA/OALDERS/libwww-perl-6.38.tar.gz",
+        "uploader": "OALDERS",
+        "version": "6.38"
+      },
+      {
+        "module": "Mojo",
+        "owner": "SRI",
+        "path": "S/SR/SRI/Mojolicious-8.14.tar.gz",
+        "uploader": "SRI",
+        "version": null
+      }
+    ],
+    "last_updated": 1556271962
+  }
+
 
 =head2 perms
 

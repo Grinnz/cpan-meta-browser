@@ -89,8 +89,9 @@ get '/api/v1/authors/:author' => sub ($c) {
   $c->render(json => $authors);
 };
 
-get '/api/v2/packages/:module' => sub ($c) {
-  my $module = trim($c->param('module') // '');
+get '/api/v2/packages/:module' => {module => ''} => sub ($c) {
+  my @modules = grep { length } map { trim $_ } $c->param('module'), @{$c->req->every_param('module')};
+  my $module = @modules == 1 ? $modules[0] : \@modules;
   my $as_prefix = $c->param('as_prefix');
   my $as_infix = $c->param('as_infix');
   my $packages = $c->get_packages($module, $as_prefix, $as_infix);

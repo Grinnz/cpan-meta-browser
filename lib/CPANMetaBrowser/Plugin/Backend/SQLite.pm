@@ -22,7 +22,11 @@ sub register ($self, $app, $config) {
   $app->helper(get_packages => sub ($c, $module, $as_prefix = 0, $as_infix = 0) {
     return [] unless length $module;
     my ($where, @params);
-    if ($as_infix) {
+    if (ref $module eq 'ARRAY') {
+      my $in = join ',', ('?')x@$module;
+      $where = '"p"."package" COLLATE NOCASE IN (' . $in . ')';
+      @params = @$module;
+    } elsif ($as_infix) {
       $where = '"p"."package" LIKE ? ESCAPE ?';
       @params = ('%' . $c->_sql_pattern_escape($module) . '%', '\\');
     } elsif ($as_prefix) {

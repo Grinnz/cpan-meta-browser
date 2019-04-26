@@ -22,7 +22,11 @@ sub register ($self, $app, $config) {
     return [] unless length $module;
     my $db = $c->redis->db;
     my $packages_lc;
-    if ($as_infix) {
+    if (ref $module eq 'ARRAY') {
+      my %modules_map = map { (lc($_) => 1) } @$module;
+      $packages_lc = $db->zrangebylex('cpanmeta.packages_sorted', '-', '+');
+      @$packages_lc = grep { exists $modules_map{$_} } @$packages_lc;
+    } elsif ($as_infix) {
       $packages_lc = $db->zrangebylex('cpanmeta.packages_sorted', '-', '+');
       @$packages_lc = grep { m/\Q$module/i } @$packages_lc;
     } elsif ($as_prefix) {
@@ -32,6 +36,7 @@ sub register ($self, $app, $config) {
     } else {
       $packages_lc = $db->zrangebylex('cpanmeta.packages_sorted', "[\L$module", "[\L$module");
     }
+    return [] unless @$packages_lc;
     my @package_names = @{$db->hmget('cpanmeta.packages_lc', @$packages_lc)};
     my %package_map = map { ($packages_lc->[$_] => $package_names[$_]) } 0..$#$packages_lc;
     my @package_owners = @{$db->hmget('cpanmeta.package_owners', @package_names)};

@@ -22,7 +22,10 @@ sub register ($self, $app, $config) {
   $app->helper(get_packages => sub ($c, $module, $as_prefix = 0, $as_infix = 0) {
     return [] unless length $module;
     my ($where, @params);
-    if ($as_infix) {
+    if (ref $module eq 'ARRAY') {
+      $where = 'lower("p"."package") = ANY(?)';
+      @params = [map { lc } @$module];
+    } elsif ($as_infix) {
       $where = 'lower("p"."package") LIKE lower(?)';
       @params = ('%' . $c->_sql_pattern_escape($module) . '%');
     } elsif ($as_prefix) {
