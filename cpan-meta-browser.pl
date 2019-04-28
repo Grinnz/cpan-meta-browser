@@ -19,6 +19,10 @@ push @{app->plugins->namespaces}, 'CPANMetaBrowser::Plugin';
 
 plugin 'Config' => {file => 'cpan-meta-browser.conf', default => {}};
 
+if (defined(my $logfile = app->config->{logfile})) {
+  app->log->with_roles('+Clearable')->path($logfile);
+}
+
 my $httptiny;
 helper 'httptiny' => sub { $httptiny //= HTTP::Tiny->new };
 

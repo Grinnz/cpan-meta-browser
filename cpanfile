@@ -7,6 +7,7 @@ requires 'IO::Socket::SSL';
 requires 'IO::Uncompress::Gunzip';
 requires 'Mojolicious' => '7.29';
 requires 'Mojolicious::Plugin::AccessLog';
+requires 'Mojo::Log::Role::Clearable';
 requires 'Mojo::JSON::MaybeXS';
 requires 'Syntax::Keyword::Try' => '0.04';
 requires 'Text::CSV_XS';
