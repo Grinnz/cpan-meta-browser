@@ -27,12 +27,13 @@ The C<Permissions Search> searches the PAUSE permissions database, which is the
 file L<06perms.txt|https://cpan.metacpan.org/modules/06perms.txt>. This is the
 listing of authors that can upload new stable releases of a module and have it
 indexed, and that can modify the permissions for that module name. The
-C<first-come> permission has ultimate authority on the name, and can add or
-remove any other user's permissions. The C<permission manager> permission can
-add or remove other user's permissions other than C<first-come>. The
-C<co-maint> permission can only remove their own permission. Note that these
-module permissions are B<not> hierarchical. An author must have permissions for
-each individual module name they wish to have indexed.
+C<first-come> permission, granted to the first user to upload a module name,
+has ultimate authority on the name, and can add or remove any other user's
+permissions. The C<permission manager> permission can add or remove other
+C<co-maint> permissions. The C<co-maint> permission can only remove their own
+permission. Note that these module permissions are B<not> hierarchical. An
+author must have permissions for each individual module name they wish to have
+indexed.
 
 The C<Author Search> searches the CPAN authors database, which is the file
 L<00whois.xml|https://cpan.metacpan.org/authors/00whois.xml>. This contains
