@@ -1,30 +1,31 @@
 % layout 'main', title => 'Permissions Search', search_type => 'perms';
 <div class="container">
-<form class="form-inline" id="search-form" v-on:submit.prevent="do_search">
+<form class="form-inline" id="search-form" method="get">
   <label class="sr-only" for="search-author">User PAUSE ID</label>
   <div class="input-group mr-sm-2 mb-2">
-    <input type="text" class="form-control" id="search-author" v-model="search_author" placeholder="User PAUSE ID">
+    <input type="text" class="form-control" id="search-author" name="author" value="<%= param 'author' %>" placeholder="User PAUSE ID">
     <div class="input-group-append">
       <div class="input-group-text" title="Include results for other users that have permissions on the modules that this user has permissions for">
-        <input type="checkbox" class="form-check-input" id="search-other-authors" v-model="search_other_authors">
+        <input type="checkbox" class="form-check-input" id="search-other-authors" name="other_authors" value="1"<% if (param 'other_authors') { %> checked<% } %>>
         <label class="form-check-label" for="search-other-authors">Include Others</label>
       </div>
     </div>
   </div>
   <label class="sr-only" for="search-query">Module Name</label>
   <div class="input-group mr-sm-2 mb-2">
-    <input type="text" class="form-control" id="search-query" v-model="search_query" placeholder="Module::Name">
+    <input type="text" class="form-control" id="search-query" name="module" value="<%= param 'module' %>" placeholder="Module::Name">
     <div class="input-group-append">
+      % my $match_mode = param('match_mode') || 'prefix';
       <div class="input-group-text" title="Include results for all module names starting with this prefix">
-        <input type="radio" class="form-check-input" id="search-prefix" value="prefix" v-model="search_match_mode">
+        <input type="radio" class="form-check-input" id="search-prefix" name="match_mode" value="prefix"<% if ($match_mode eq 'prefix') { %> checked<% } %>>
         <label class="form-check-label" for="search-prefix">Prefix</label>
       </div>
       <div class="input-group-text" title="Include results for all module names containing this infix">
-        <input type="radio" class="form-check-input" id="search-infix" value="infix" v-model="search_match_mode">
+        <input type="radio" class="form-check-input" id="search-infix" name="match_mode" value="infix"<% if ($match_mode eq 'infix') { %> checked<% } %>>
         <label class="form-check-label" for="search-infix">Infix</label>
       </div>
       <div class="input-group-text" title="Include results only for this exact module name">
-        <input type="radio" class="form-check-input" id="search-exact-match" value="exact" v-model="search_match_mode">
+        <input type="radio" class="form-check-input" id="search-exact-match" name="match_mode" value="exact"<% if ($match_mode eq 'exact') { %> checked<% } %>>
         <label class="form-check-label" for="search-exact-match">Exact Match</label>
       </div>
     </div>
@@ -33,7 +34,8 @@
 </form>
 </div>
 <div class="container-fluid">
-<table v-if="perms_search_results" class="table table-striped table-sm">
+% if (defined(my $perms = stash 'perms')) {
+<table class="table table-striped table-sm">
   <thead class="thead-light">
     <tr>
       <th>Module</th>
@@ -43,20 +45,23 @@
     </tr>
   </thead>
   <tbody>
-    <tr v-for="perm in perms_search_results">
-      <td><a v-bind:href="module_url(perm.module)">{{ perm.module }}</a></td>
-      <td><a v-bind:href="author_url(perm.author)">{{ perm.author }}</a></td>
-      <td>{{ permission_string(perm.best_permission) }}</td>
-      <td><a v-bind:href="author_url(perm.owner)">{{ perm.owner }}</a></td>
+    % for my $perm (@$perms) {
+    <tr>
+      <td><a href="<%= results_module_url($perm->{module}) %>"><%= $perm->{module} %></a></td>
+      <td><a href="<%= results_author_url($perm->{author}) %>"><%= $perm->{author} %></a></td>
+      <td><%= results_permission_string($perm->{best_permission}) %></td>
+      <td><a href="<%= results_author_url($perm->{owner}) %>"><%= $perm->{owner} %></a></td>
     </tr>
+    % }
   </tbody>
   <tfoot>
     <tr>
       <td colspan="4">
-        <small>{{ perms_search_results.length }} result(s) retrieved from <a href="https://cpan.metacpan.org/modules/06perms.txt">06perms.txt</a></small>
-        <small v-if="perms_data_refreshed">at {{ to_date_string(perms_data_refreshed) }}</small>
+        <small><%= scalar @$perms %> result(s) retrieved from <a href="https://cpan.metacpan.org/modules/06perms.txt">06perms.txt</a>
+        <% if (defined(my $refreshed = stash 'last_updated')) { %>at <%= results_date_string($refreshed) %><% } %></small>
       </td>
     </tr>
   </tfoot>
 </table>
+% }
 </div>

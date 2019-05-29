@@ -1,11 +1,11 @@
 requires 'perl' => '5.020';
-requires 'experimental';
 requires 'lib::relative';
+requires 'CPAN::DistnameInfo';
 requires 'Getopt::Long';
 requires 'HTTP::Tiny' => '0.039';
 requires 'IO::Socket::SSL';
 requires 'IO::Uncompress::Gunzip';
-requires 'Mojolicious' => '7.29';
+requires 'Mojolicious' => '7.51';
 requires 'Mojolicious::Plugin::AccessLog';
 requires 'Mojo::Log::Role::Clearable';
 requires 'Mojo::JSON::MaybeXS';

@@ -5,8 +5,7 @@ package CPANMetaBrowser::Plugin::Backend::SQLite;
 #   The Artistic License 2.0 (GPL Compatible)
 
 use 5.020;
-use Mojo::Base 'Mojolicious::Plugin';
-use experimental 'signatures';
+use Mojo::Base 'Mojolicious::Plugin', -signatures;
 use Mojo::JSON qw(true false);
 use Mojo::SQLite 2.001;
 

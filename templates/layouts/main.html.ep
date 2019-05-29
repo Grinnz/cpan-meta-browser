@@ -24,11 +24,8 @@
 %= content
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/vue@2.5.21/dist/vue.min.js" integrity="sha256-ui3vFTgbIIvd9ePh+wF+ju05O3jympV4FyFlpNMV2cw=" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8.1.0/dist/polyfill.min.js" integrity="sha256-6O50efpsc5KqGED3i4KVrP7Q8Ho3LQ2Yfu0lY6SZOOg=" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/url-polyfill@1.1.0/url-polyfill.min.js" integrity="sha256-HSZRwWG70quT6FhsPdCHCRfvZxfs6Nwa2Mxjo1Hdk8g=" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/whatwg-fetch@3.0.0/dist/fetch.umd.js" integrity="sha256-mgxDAbboBKeoCOtpaU7QhWdgWBGum+8dPxnIjiC97JI=" crossorigin="anonymous"></script>
-  <script src="/js/cpan-meta-browser.js"></script>
+  <script src="/js/fragment-redirect.js"></script>
 % if (defined $c->config->{google_analytics_tracking_id}) {
   <script>
     (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){

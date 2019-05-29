@@ -5,8 +5,7 @@ package CPANMetaBrowser::Command::refresh;
 #   The Artistic License 2.0 (GPL Compatible)
 
 use 5.020;
-use Mojo::Base 'Mojolicious::Command';
-use experimental 'signatures';
+use Mojo::Base 'Mojolicious::Command', -signatures;
 use Getopt::Long qw(GetOptionsFromArray :config gnu_getopt no_ignore_case);
 use IO::Uncompress::Gunzip qw(gunzip $GunzipError);
 use Mojo::DOM;
