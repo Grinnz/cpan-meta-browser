@@ -52,7 +52,7 @@ function redirect_from_hash(search_type) {
   }
 }
 
-window.onload = function() {
+window.addEventListener('load', function() {
   var search_type = document.getElementById('search-type').getAttribute('value');
   redirect_from_hash(search_type);
-};
+}, false);

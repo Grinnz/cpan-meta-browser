@@ -52,7 +52,7 @@
     <tr>
       <td colspan="6">
         <small><%= scalar @$authors %> result(s) retrieved from <a href="https://cpan.metacpan.org/authors/00whois.xml">00whois.xml</a>
-        <% if (defined(my $refreshed = stash 'last_updated')) { %>at <%= results_date_string($refreshed) %><% } %></small>
+        <% if (defined(my $refreshed = stash 'last_updated')) { %>at <span id="refreshed-time" data-epoch="<%= $refreshed %>"><%= results_date_string($refreshed) %><% } %></span></small>
       </td>
     </tr>
   </tfoot>
