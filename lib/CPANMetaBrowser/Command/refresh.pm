@@ -16,7 +16,7 @@ use Syntax::Keyword::Try;
 use Text::CSV_XS;
 
 has description => 'Refresh local CPAN metadata database from a CPAN mirror';
-has usage => "Usage: $0 refresh [--mirror=<url>]\n";
+has usage => "Usage: $0 refresh [--mirror=<url>] [packages|perms|authors ...]\n";
 
 has mirror => 'https://cpan.metacpan.org';
 
@@ -24,10 +24,12 @@ sub run ($self, @args) {
   GetOptionsFromArray(\@args,
     'mirror|from|M=s' => sub { $self->mirror($_[1]) },
   ) or die $self->usage;
+  my @dbs = @args ? @args : qw(packages perms authors);
+  my %refresh = map { (lc $_ => 1) } @dbs;
   try {
-    $self->prepare_02packages;
-    $self->prepare_06perms;
-    $self->prepare_00whois;
+    $self->prepare_02packages if $refresh{packages};
+    $self->prepare_06perms if $refresh{perms};
+    $self->prepare_00whois if $refresh{authors};
     $self->app->log->debug('Refreshed cpan-meta database');
     print "Refreshed cpan-meta database\n";
   } catch {
@@ -137,9 +139,8 @@ sub prepare_00whois ($self) {
   my %authors = map { ($_ => 1) } @{$self->app->existing_authors($db)};
   
   foreach my $author (@{$dom->find('cpanid')}) {
-    next unless $author->at('type')->text eq 'author';
     my %details;
-    foreach my $detail (qw(id fullname asciiname email homepage introduced has_cpandir)) {
+    foreach my $detail (qw(id type fullname asciiname email homepage info introduced has_cpandir)) {
       my $elem = $author->at($detail) // next;
       $details{$detail} = $elem->text;
     }

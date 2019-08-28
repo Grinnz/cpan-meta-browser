@@ -41,7 +41,7 @@
     <tr>
       <td><a href="<%= results_module_url($package->{module}) %>"><%= $package->{module} %></a></td>
       <td><%= $package->{version} %></td>
-      <td><a href="<%= results_author_url($package->{owner}) %>"><%= $package->{owner} %></a></td>
+      <td><% if (length $package->{owner}) { %><a href="<%= results_author_url($package->{owner}) %>"><%= $package->{owner} %></a><% } %></td>
       <td><a href="<%= results_author_url($package->{uploader}) %>"><%= $package->{uploader} %></a></td>
       <td><a href="<%= results_release_url($package->{uploader}, $package->{path}) %>"><%= results_release_name($package->{path}) %></a></td>
       <td><a href="<%= results_cpandir_url($package->{path}) %>"><%= $package->{path} %></a></td>

@@ -29,6 +29,7 @@
   <thead class="thead-light">
     <tr>
       <th>PAUSE ID</th>
+      <th>Type</th>
       <th>Name</th>
       <th>Email</th>
       <th>Homepage</th>
@@ -40,11 +41,16 @@
     % for my $author (@$authors) {
     <tr>
       <td><a href="<%= results_author_url($author->{author}) %>"><%= $author->{author} %></a></td>
-      <td title="<%= $author->{asciiname} %>"><%= $author->{fullname} %></td>
-      <td><% if (defined $author->{email} and $author->{email} eq 'CENSORED') { %><%= $author->{email} %><% } else { %><a href="<%= "mailto:$author->{email}" %>"><%= $author->{email} %></a><% } %></td>
-      <td><a href="<%= results_author_homepage($author->{homepage}) %>"><%= $author->{homepage} %></td>
-      <td><%= results_date_string($author->{introduced}) %></td>
+      <td><%= $author->{type} %></td>
+      <td title="<%= $author->{asciiname} %>"><%= $author->{fullname} // $author->{asciiname} %></td>
+      <td><% if (length $author->{email}) { if ($author->{email} eq 'CENSORED') { %><%= $author->{email} %><% } else { %><a href="<%= "mailto:$author->{email}" %>"><%= $author->{email} %></a><% } } %></td>
+      % if ($author->{type} eq 'list') {
+      <td colspan="3"><%= $author->{info} %></td>
+      % } else {
+      <td><% if (length $author->{homepage}) { %><a href="<%= results_author_homepage($author->{homepage}) %>"><%= $author->{homepage} %><% } %></td>
+      <td><% if (defined $author->{introduced}) { %><%= results_date_string($author->{introduced}) %><% } %></td>
       <td><% if ($author->{has_cpandir}) { %><a href="<%= results_cpandir_url(results_author_cpandir($author->{author})) %>"><%= results_author_cpandir($author->{author}) %></a><% } %></td>
+      % }
     </tr>
     % }
   </tbody>

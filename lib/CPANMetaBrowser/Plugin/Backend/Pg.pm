@@ -117,7 +117,7 @@ sub register ($self, $app, $config) {
       $where = 'lower("cpanid") = lower(?)';
       @params = ($author);
     }
-    my $query = 'SELECT "cpanid" AS "author", "fullname", "asciiname", "email", "homepage", "introduced", "has_cpandir"
+    my $query = 'SELECT "cpanid" AS "author", "type", "fullname", "asciiname", "email", "homepage", "info", "introduced", "has_cpandir"
       FROM "authors" WHERE ' . $where . ' ORDER BY lower("cpanid")';
     my $details = $c->pg->db->query($query, @params)->hashes;
     $_->{has_cpandir} = $_->{has_cpandir} ? true : false for @$details;
@@ -130,9 +130,9 @@ sub register ($self, $app, $config) {
   
   $app->helper(update_author => sub ($c, $db, $data) {
     my $current = $db->select('authors', ['*'], {cpanid => $data->{cpanid}})->hashes->first;
-    return 1 if $c->_keys_equal($data, $current, [qw(fullname asciiname email homepage introduced has_cpandir)]);
-    return $db->insert('authors', {%$data{qw(cpanid fullname asciiname email homepage introduced has_cpandir)}},
-      {on_conflict => ['cpanid', {map {($_ => \qq{EXCLUDED."$_"})} qw(fullname asciiname email homepage introduced has_cpandir)}]});
+    return 1 if $c->_keys_equal($data, $current, [qw(type fullname asciiname email homepage info introduced has_cpandir)]);
+    return $db->insert('authors', {%$data{qw(cpanid type fullname asciiname email homepage info introduced has_cpandir)}},
+      {on_conflict => ['cpanid', {map {($_ => \qq{EXCLUDED."$_"})} qw(type fullname asciiname email homepage info introduced has_cpandir)}]});
   });
   
   $app->helper(delete_author => sub ($c, $db, $cpanid) {
@@ -203,3 +203,18 @@ CREATE INDEX IF NOT EXISTS "packages_package_trgm_idx" ON "packages" USING GIN (
 CREATE INDEX IF NOT EXISTS "perms_userid_trgm_idx" ON "perms" USING GIN (lower("userid") gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS "perms_package_trgm_idx" ON "perms" USING GIN (lower("package") gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS "authors_cpanid_trgm_idx" ON "authors" USING GIN (lower("cpanid") gin_trgm_ops);
+
+--4 up
+ALTER TYPE "cpan_permission" RENAME TO "cpan_permission_old";
+CREATE TYPE "cpan_permission" AS ENUM ('m','f','p','c');
+ALTER TABLE "perms" ALTER COLUMN "best_permission" TYPE cpan_permission USING best_permission::text::cpan_permission;
+DROP TYPE "cpan_permission_old";
+
+CREATE TYPE "cpanid_type" AS ENUM ('author','list');
+ALTER TABLE "authors"
+  ADD COLUMN "type" cpanid_type NOT NULL DEFAULT 'author',
+  ADD COLUMN "info" CHARACTER VARYING NULL;
+
+--4 down
+ALTER TABLE "authors" DROP COLUMN "type", DROP COLUMN "info";
+DROP TYPE IF EXISTS "cpanid_type";

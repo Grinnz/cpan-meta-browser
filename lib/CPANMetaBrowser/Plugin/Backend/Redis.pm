@@ -105,6 +105,7 @@ sub register ($self, $app, $config) {
       } else {
         $packages_lc = $db->zrangebylex("cpanmeta.perms_packages_for_userid.$userid", '-', '+');
       }
+      return [] unless @$packages_lc;
       my @package_names = @{$db->hmget('cpanmeta.perms_packages_lc', @$packages_lc)};
       my %package_map = map { ($packages_lc->[$_] => $package_names[$_]) } 0..$#$packages_lc;
       my @package_owners = @{$db->hmget('cpanmeta.package_owners', @package_names)};
@@ -133,6 +134,7 @@ sub register ($self, $app, $config) {
       } else {
         $packages_lc = $db->zrangebylex('cpanmeta.perms_packages_sorted', "[\L$module", "[\L$module");
       }
+      return [] unless @$packages_lc;
       my @package_names = @{$db->hmget('cpanmeta.perms_packages_lc', @$packages_lc)};
       my %package_map = map { ($packages_lc->[$_] => $package_names[$_]) } 0..$#$packages_lc;
       my @package_owners = @{$db->hmget('cpanmeta.package_owners', @package_names)};
@@ -241,6 +243,7 @@ sub register ($self, $app, $config) {
     } else {
       $cpanids_lc = $db->zrangebylex('cpanmeta.cpanids_sorted', "[\L$author", "[\L$author");
     }
+    return [] unless @$cpanids_lc;
     my @cpanids = @{$db->hmget('cpanmeta.cpanids_lc', @$cpanids_lc)};
     my %cpanid_map = map { ($cpanids_lc->[$_] => $cpanids[$_]) } 0..$#$cpanids_lc;
     my @author_details = @{$db->hmget('cpanmeta.author_data', @cpanids)};
@@ -251,10 +254,12 @@ sub register ($self, $app, $config) {
       my $author = from_json($details_map{$cpanid} || 'null');
       push @$details, {
         author => $author->{cpanid},
+        type => $author->{type},
         fullname => $author->{fullname},
         asciiname => $author->{asciiname},
         email => $author->{email},
         homepage => $author->{homepage},
+        info => $author->{info},
         introduced => $author->{introduced},
         has_cpandir => $author->{has_cpandir},
       };
@@ -269,7 +274,7 @@ sub register ($self, $app, $config) {
   
   $app->helper(update_author => sub ($c, $db, $data) {
     my $current = from_json($db->hget('cpanmeta.author_data', $data->{cpanid}) || 'null');
-    return 1 if $c->_keys_equal($data, $current, [qw(fullname asciiname email homepage introduced has_cpandir)]);
+    return 1 if $c->_keys_equal($data, $current, [qw(type fullname asciiname email homepage info introduced has_cpandir)]);
     $db->multi;
     $db->hset('cpanmeta.author_data', $data->{cpanid} => to_json $data);
     my $cpanid_lc = lc $data->{cpanid};

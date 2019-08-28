@@ -118,7 +118,7 @@ sub register ($self, $app, $config) {
       $where = '"cpanid" COLLATE NOCASE = ?';
       @params = ($author);
     }
-    my $query = 'SELECT "cpanid" AS "author", "fullname", "asciiname", "email", "homepage", "introduced", "has_cpandir"
+    my $query = 'SELECT "cpanid" AS "author", "type", "fullname", "asciiname", "email", "homepage", "info", "introduced", "has_cpandir"
       FROM "authors" WHERE ' . $where . ' ORDER BY "cpanid" COLLATE NOCASE';
     my $details = $c->sqlite->db->query($query, @params)->hashes;
     $_->{has_cpandir} = $_->{has_cpandir} ? true : false for @$details;
@@ -131,9 +131,9 @@ sub register ($self, $app, $config) {
   
   $app->helper(update_author => sub ($c, $db, $data) {
     my $current = $db->select('authors', ['*'], {cpanid => $data->{cpanid}})->hashes->first;
-    return 1 if $c->_keys_equal($data, $current, [qw(fullname asciiname email homepage introduced has_cpandir)]);
-    my $query = 'INSERT OR REPLACE INTO "authors" ("cpanid","fullname","asciiname","email","homepage","introduced","has_cpandir") VALUES (?,?,?,?,?,?,?)';
-    return $db->query($query, @$data{'cpanid','fullname','asciiname','email','homepage','introduced','has_cpandir'});
+    return 1 if $c->_keys_equal($data, $current, [qw(type fullname asciiname email homepage info introduced has_cpandir)]);
+    my $query = 'INSERT OR REPLACE INTO "authors" ("cpanid","type","fullname","asciiname","email","homepage","info","introduced","has_cpandir") VALUES (?,?,?,?,?,?,?,?,?)';
+    return $db->query($query, @$data{'cpanid','type','fullname','asciiname','email','homepage','info','introduced','has_cpandir'});
   });
   
   $app->helper(delete_author => sub ($c, $db, $cpanid) {
@@ -222,3 +222,33 @@ CREATE INDEX "authors_cpanid_idx" ON "authors" ("cpanid" COLLATE NOCASE);
 --5 down
 DROP INDEX IF EXISTS "packages_package_idx";
 DROP INDEX IF EXISTS "authors_cpanid_idx";
+
+--6 up
+CREATE TABLE "perms_new" (
+  "package" TEXT NOT NULL,
+  "userid" TEXT NOT NULL,
+  "best_permission" TEXT NOT NULL CHECK ("best_permission" IN ('m','f','p','c')),
+  PRIMARY KEY ("package","userid")
+);
+INSERT INTO "perms_new" SELECT * FROM "perms";
+DROP TABLE "perms";
+ALTER TABLE "perms_new" RENAME TO "perms";
+CREATE INDEX "perms_userid_best_permission_idx" ON "perms" ("userid" COLLATE NOCASE,"best_permission");
+CREATE INDEX "perms_package_best_permission_idx" ON "perms" ("package" COLLATE NOCASE,"best_permission");
+
+CREATE TABLE "authors_new" (
+  "cpanid" TEXT NOT NULL PRIMARY KEY,
+  "type" TEXT NOT NULL DEFAULT 'author' CHECK ("type" IN ('author','list')),
+  "fullname" TEXT NULL,
+  "asciiname" TEXT NULL,
+  "email" TEXT NULL,
+  "homepage" TEXT NULL,
+  "info" TEXT NULL,
+  "introduced" INTEGER NULL,
+  "has_cpandir" INTEGER NULL
+);
+INSERT INTO "authors_new" ("cpanid","fullname","asciiname","email","homepage","introduced","has_cpandir")
+  SELECT "cpanid","fullname","asciiname","email","homepage","introduced","has_cpandir" FROM "authors";
+DROP TABLE "authors";
+ALTER TABLE "authors_new" RENAME TO "authors";
+CREATE INDEX "authors_cpanid_idx" ON "authors" ("cpanid" COLLATE NOCASE);
