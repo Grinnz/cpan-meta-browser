@@ -18,7 +18,7 @@ use Text::CSV_XS;
 has description => 'Refresh local CPAN metadata database from a CPAN mirror';
 has usage => "Usage: $0 refresh [--mirror=<url>] [packages|perms|authors ...]\n";
 
-has mirror => 'https://cpan.metacpan.org';
+has mirror => 'https://www.cpan.org';
 
 sub run ($self, @args) {
   GetOptionsFromArray(\@args,

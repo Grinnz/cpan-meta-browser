@@ -51,7 +51,7 @@
   <tfoot>
     <tr>
       <td colspan="6">
-        <small><%= scalar @$packages %> result(s) retrieved from <a href="https://cpan.metacpan.org/modules/02packages.details.txt">02packages.details.txt</a>
+        <small><%= scalar @$packages %> result(s) retrieved from <a href="https://www.cpan.org/modules/02packages.details.txt">02packages.details.txt</a>
         <% if (defined(my $refreshed = stash 'last_updated')) { %>at <span id="refreshed-time" data-epoch="<%= $refreshed %>"><%= results_date_string($refreshed) %></span><% } %></small>
       </td>
     </tr>

@@ -57,7 +57,7 @@
   <tfoot>
     <tr>
       <td colspan="4">
-        <small><%= scalar @$perms %> result(s) retrieved from <a href="https://cpan.metacpan.org/modules/06perms.txt">06perms.txt</a>
+        <small><%= scalar @$perms %> result(s) retrieved from <a href="https://www.cpan.org/modules/06perms.txt">06perms.txt</a>
         <% if (defined(my $refreshed = stash 'last_updated')) { %>at <span id="refreshed-time" data-epoch="<%= $refreshed %>"><%= results_date_string($refreshed) %><% } %></span></small>
       </td>
     </tr>

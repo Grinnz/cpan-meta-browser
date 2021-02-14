@@ -18,13 +18,13 @@ search functionality into the indexed database.
   hypnotoad /path/to/cpan-meta-browser.pl
 
 The C<Module Index Search> searches the CPAN packages index, which is the file
-L<02packages.details.txt|https://cpan.metacpan.org/modules/02packages.details.txt>.
+L<02packages.details.txt|https://www.cpan.org/modules/02packages.details.txt>.
 This is the canonical mapping of module name to the latest authorized stable
 release of that module, maintained by PAUSE and used by CPAN installers when
 given a module to install.
 
 The C<Permissions Search> searches the PAUSE permissions database, which is the
-file L<06perms.txt|https://cpan.metacpan.org/modules/06perms.txt>. This is the
+file L<06perms.txt|https://www.cpan.org/modules/06perms.txt>. This is the
 listing of authors that can upload new stable releases of a module and have it
 indexed, and that can modify the permissions for that module name. The
 C<first-come> permission, granted to the first user to upload a module name,
@@ -36,7 +36,7 @@ author must have permissions for each individual module name they wish to have
 indexed.
 
 The C<Author Search> searches the CPAN authors database, which is the file
-L<00whois.xml|https://cpan.metacpan.org/authors/00whois.xml>. This contains
+L<00whois.xml|https://www.cpan.org/authors/00whois.xml>. This contains
 public details of the PAUSE accounts.
 
 =head1 INSTALLATION

@@ -62,7 +62,7 @@ app->log->level($old_level);
 helper results_module_url => sub ($c, $module) { Mojo::URL->new('https://metacpan.org/')->path("pod/$module")->to_string };
 helper results_author_url => sub ($c, $author) { Mojo::URL->new('https://metacpan.org/')->path("author/$author")->to_string };
 helper results_author_homepage => sub ($c, $url) { $url =~ m!^(?:[a-z]+:)?//!i ? $url : "http://$url" };
-helper results_cpandir_url => sub ($c, $path) { Mojo::URL->new('https://cpan.metacpan.org/')->path("authors/id/$path")->to_string };
+helper results_cpandir_url => sub ($c, $path) { Mojo::URL->new('https://www.cpan.org/')->path("authors/id/$path")->to_string };
 helper results_release_name => sub ($c, $path) { CPAN::DistnameInfo->new($path)->distvname };
 helper results_release_url => sub ($c, $uploader, $path) {
   my $name = $c->results_release_name($path);
