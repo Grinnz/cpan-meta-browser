@@ -12,16 +12,14 @@
   <nav class="navbar navbar-expand-md mb-2">
     <div class="container-fluid">
       <span class="navbar-brand mb-0 h1">CPAN Meta Browser</span>
+      <nav class="navbar-nav nav-tabs nav-justified flex-fill me-2">
+        <a class="nav-link text-nowrap<% if (current_route 'packages') { %> active<% } %>" href="/packages">Module Index Search</a>
+        <a class="nav-link text-nowrap<% if (current_route 'perms') { %> active<% } %>" href="/perms">Permissions Search</a>
+        <a class="nav-link text-nowrap<% if (current_route 'authors') { %> active<% } %>" href="/authors">Author Search</a>
+      </nav>
       <a class="navbar-text" href="https://github.com/Grinnz/cpan-meta-browser">Source on GitHub</a>
     </div>
   </nav>
-  <div class="container mb-2">
-    <ul class="nav nav-tabs nav-justified">
-      <li class="nav-item"><a class="nav-link<% if (current_route 'packages') { %> active<% } %>" href="/packages">Module Index Search</a></li>
-      <li class="nav-item"><a class="nav-link<% if (current_route 'perms') { %> active<% } %>" href="/perms">Permissions Search</a></li>
-      <li class="nav-item"><a class="nav-link<% if (current_route 'authors') { %> active<% } %>" href="/authors">Author Search</a></li>
-    </ul>
-  </div>
   <div id="search-tab" class="tab-content">
     <input type="hidden" id="search-type" value="<%= stash 'search_type' %>">
 %= content
