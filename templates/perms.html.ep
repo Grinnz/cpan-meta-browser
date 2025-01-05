@@ -1,42 +1,42 @@
 % layout 'main', title => 'Permissions Search', search_type => 'perms';
 <div class="container">
-<form class="form-inline" id="search-form" method="get">
-  <label class="sr-only" for="search-author">User PAUSE ID</label>
-  <div class="input-group mr-sm-2 mb-2">
-    <input type="text" class="form-control" id="search-author" name="author" value="<%= param 'author' %>" placeholder="User PAUSE ID">
-    <div class="input-group-append">
+<form class="row row-cols-sm-auto g-2 align-items-center" id="search-form" method="get">
+  <div class="col-12 mb-2">
+    <label class="visually-hidden" for="search-author">User PAUSE ID</label>
+    <div class="input-group">
+      <input type="text" class="form-control" id="search-author" name="author" value="<%= param 'author' %>" placeholder="User PAUSE ID">
       <div class="input-group-text" title="Include results for other users that have permissions on the modules that this user has permissions for">
-        <input type="checkbox" class="form-check-input" id="search-other-authors" name="other_authors" value="1"<% if (param 'other_authors') { %> checked<% } %>>
+        <input type="checkbox" class="form-check-input me-1" id="search-other-authors" name="other_authors" value="1"<% if (param 'other_authors') { %> checked<% } %>>
         <label class="form-check-label" for="search-other-authors">Include Others</label>
       </div>
     </div>
   </div>
-  <label class="sr-only" for="search-query">Module Name</label>
-  <div class="input-group mr-sm-2 mb-2">
-    <input type="text" class="form-control" id="search-query" name="module" value="<%= param 'module' %>" placeholder="Module::Name">
-    <div class="input-group-append">
+  <div class="col-12 mb-2">
+    <label class="visually-hidden" for="search-query">Module Name</label>
+    <div class="input-group">
+      <input type="text" class="form-control" id="search-query" name="module" value="<%= param 'module' %>" placeholder="Module::Name">
       % my $match_mode = param('match_mode') || 'prefix';
       <div class="input-group-text" title="Include results for all module names starting with this prefix">
-        <input type="radio" class="form-check-input" id="search-prefix" name="match_mode" value="prefix"<% if ($match_mode eq 'prefix') { %> checked<% } %>>
+        <input type="radio" class="form-check-input me-1" id="search-prefix" name="match_mode" value="prefix"<% if ($match_mode eq 'prefix') { %> checked<% } %>>
         <label class="form-check-label" for="search-prefix">Prefix</label>
       </div>
       <div class="input-group-text" title="Include results for all module names containing this infix">
-        <input type="radio" class="form-check-input" id="search-infix" name="match_mode" value="infix"<% if ($match_mode eq 'infix') { %> checked<% } %>>
+        <input type="radio" class="form-check-input me-1" id="search-infix" name="match_mode" value="infix"<% if ($match_mode eq 'infix') { %> checked<% } %>>
         <label class="form-check-label" for="search-infix">Infix</label>
       </div>
       <div class="input-group-text" title="Include results only for this exact module name">
-        <input type="radio" class="form-check-input" id="search-exact-match" name="match_mode" value="exact"<% if ($match_mode eq 'exact') { %> checked<% } %>>
+        <input type="radio" class="form-check-input me-1" id="search-exact-match" name="match_mode" value="exact"<% if ($match_mode eq 'exact') { %> checked<% } %>>
         <label class="form-check-label" for="search-exact-match">Exact Match</label>
       </div>
     </div>
   </div>
-  <button type="submit" class="btn btn-primary mb-2">Search</button>
+  <div class="col-12 mb-2"><button type="submit" class="btn btn-primary">Search</button></div>
 </form>
 </div>
 <div class="container-fluid">
 % if (defined(my $perms = stash 'perms')) {
-<table class="table table-striped table-sm">
-  <thead class="thead-light">
+<table class="table table-light table-striped table-sm">
+  <thead>
     <tr>
       <th>Module</th>
       <th>User</th>
