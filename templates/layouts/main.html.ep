@@ -13,9 +13,9 @@
     <div class="container-fluid">
       <span class="navbar-brand mb-0 h1">CPAN Meta Browser</span>
       <nav class="navbar-nav nav-tabs nav-justified flex-fill me-2">
-        <a class="nav-link text-nowrap<% if (current_route 'packages') { %> active<% } %>" href="/packages">Module Index Search</a>
-        <a class="nav-link text-nowrap<% if (current_route 'perms') { %> active<% } %>" href="/perms">Permissions Search</a>
-        <a class="nav-link text-nowrap<% if (current_route 'authors') { %> active<% } %>" href="/authors">Author Search</a>
+        <a class="nav-link text-nowrap<% if (current_route 'packages') { %> active<% } %>" href="<%= url_with '/packages' %>">Module Index Search</a>
+        <a class="nav-link text-nowrap<% if (current_route 'perms') { %> active<% } %>" href="<%= url_with '/perms' %>">Permissions Search</a>
+        <a class="nav-link text-nowrap<% if (current_route 'authors') { %> active<% } %>" href="<%= url_with '/authors' %>">Author Search</a>
       </nav>
       <a class="navbar-text" href="https://github.com/Grinnz/cpan-meta-browser">Source on GitHub</a>
     </div>
