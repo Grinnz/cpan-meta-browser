@@ -46,6 +46,11 @@ F<cpanfile>. They can be installed by running:
 
   cpanm --installdeps .
 
+The dependencies for the desired backend (described below) can be installed
+via the corresponding optional feature:
+
+  cpanm --installdeps --with-feature=pg --with-recommends .
+
 =head1 CONFIGURATION
 
 CPAN Meta Browser is configured by the file F<cpan-meta-browser.conf> in the
@@ -79,13 +84,8 @@ C<redis://x:auth@host:port/database> (defaults to C<redis://localhost:6379/0>).
 =head1 API
 
 In addition to the browser interface, CPAN Meta Browser provides an API to the
-contents of the files it indexes. The endpoints below are relative to the
-installation path, such as L<https://cpanmeta.grinnz.com/>. All endpoints
-return JSON, and the module and author parameters are case insensitive and trim
-surrounding whitespace.
-
-See the L<API documentation|https://grinnz.github.io/cpan-meta-browser/api.html>
-for details.
+contents of the files it indexes. See the L<API
+documentation|https://grinnz.github.io/cpan-meta-browser/api.html> for details.
 
 =head1 COPYRIGHT AND LICENSE
 
