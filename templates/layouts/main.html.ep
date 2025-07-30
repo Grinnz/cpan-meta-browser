@@ -17,7 +17,8 @@
         <a class="nav-link text-nowrap<% if (current_route 'perms') { %> active<% } %>" href="<%= url_with '/perms' %>">Permissions Search</a>
         <a class="nav-link text-nowrap<% if (current_route 'authors') { %> active<% } %>" href="<%= url_with '/authors' %>">Author Search</a>
       </nav>
-      <a class="navbar-text" href="https://github.com/Grinnz/cpan-meta-browser">Source on GitHub</a>
+      <span class="navbar-text me-2"><a href="https://grinnz.github.io/cpan-meta-browser/api.html">API</a></span>
+      <span class="navbar-text"><a href="https://github.com/Grinnz/cpan-meta-browser">Source</a></span>
     </div>
   </nav>
   <div id="search-tab" class="tab-content">

@@ -2,7 +2,8 @@
 
 In addition to the browser interface, CPAN Meta Browser provides an API to the
 contents of the files it indexes. The endpoints below are relative to the
-installation path, such as [https://cpanmeta.grinnz.com/]. All endpoints
+installation path, such as the public instance at
+[https://cpanmeta.grinnz.com/](https://cpanmeta.grinnz.com/). All endpoints
 return JSON, and the module and author parameters are case insensitive and trim
 surrounding whitespace.
 
