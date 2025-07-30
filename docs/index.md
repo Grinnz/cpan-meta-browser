@@ -22,10 +22,6 @@ authors database, which is the file
 [00whois.xml](https://www.cpan.org/authors/00whois.xml). This contains
 public details of the PAUSE accounts.
 
-# PUBLIC INSTANCE
-
-Public instance hosted at [https://cpanmeta.grinnz.com/](https://cpanmeta.grinnz.com/).
-
 # API v2
 
 See the [API documentation](api.html) for details.
