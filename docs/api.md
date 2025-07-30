@@ -1,8 +1,8 @@
-# CPAN Meta API
+# API v2
 
 In addition to the browser interface, CPAN Meta Browser provides an API to the
 contents of the files it indexes. The endpoints below are relative to the
-installation path, such as https://cpanmeta.grinnz.com/. All endpoints
+installation path, such as [https://cpanmeta.grinnz.com/]. All endpoints
 return JSON, and the module and author parameters are case insensitive and trim
 surrounding whitespace.
 
@@ -288,7 +288,3 @@ This software is Copyright (c) 2017 by Dan Book `dbook@cpan.org`.
 This is free software, licensed under:
 
 > The Artistic License 2.0 (GPL Compatible)
-
-Bundled Perl 5 Raptor Copyright (c) 2012, Sebastian Riedel.
-
-Licensed under the CC-SA License, Version 4.0 http://creativecommons.org/licenses/by-sa/4.0.
